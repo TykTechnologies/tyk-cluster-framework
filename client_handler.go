@@ -1,8 +1,8 @@
 package tcf
 
 import (
-	"fmt"
 	"errors"
+	"github.com/TykTechnologies/logrus"
 )
 
 // ClientHandler provides helper functions and wrappers to decode a raw message into a payload object
@@ -36,7 +36,9 @@ func (c ClientHandler) WrappedHandler(rawMessage interface{}, payloadHandler Pay
 		msgHandler := NewMessageHandler()
 		asPayload, err := msgHandler.HandleRawMessage(rawMessage, enc)
 		if err != nil {
-			fmt.Printf("Payload decoding error: %v\n", err)
+			log.WithFields(logrus.Fields{
+				"prefix": "tcf",
+			}).Error("Payload decoding error: ", err)
 		}
 		payloadHandler(asPayload)
 	}

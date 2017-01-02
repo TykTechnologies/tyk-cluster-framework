@@ -1,5 +1,10 @@
 package tcf
 
+import (
+	logger "github.com/TykTechnologies/tykcommon-logger"
+)
+
+var log = logger.GetLogger()
 
 type Config struct {
 	PayloadType PayloadType

@@ -2,12 +2,11 @@ package tcf
 
 import (
 	"github.com/garyburd/redigo/redis"
-	"fmt"
 	"errors"
 	"time"
 	"strings"
 	"net/url"
-	"log"
+	"github.com/TykTechnologies/logrus"
 )
 
 type RedisClient struct{
@@ -32,7 +31,9 @@ func (c *RedisClient) Connect() error {
 		return err
 	}
 
-	fmt.Printf("CONNECTED: %v \n", c.URL)
+	log.WithFields(logrus.Fields{
+		"prefix": "tcf.redisclient",
+	}).Info("Connected: ", c.URL)
 	return nil
 }
 
@@ -58,7 +59,9 @@ func (c *RedisClient) Publish(filter string, p Payload) error {
 	}
 
 	if len(toSend) == 0 {
-		fmt.Println("No data to send, not sending")
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.redisclient",
+		}).Error("No data to send, not sending")
 		return nil
 	}
 
@@ -66,7 +69,9 @@ func (c *RedisClient) Publish(filter string, p Payload) error {
 	defer conn.Close()
 
 	if conn == nil {
-		log.Println("Not connected, connecting")
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.redisclient",
+		}).Warning("Not connected, connecting")
 		c.Connect()
 	}
 	conn.Do("PUBLISH", filter, string(toSend))
@@ -94,17 +99,22 @@ func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) error {
 				c.HandleRawMessage(v.Data, handler, c.encoding)
 
 			case redis.Subscription:
-				fmt.Printf("Subscription started: %v\n", v.Channel)
+				log.WithFields(logrus.Fields{
+					"prefix": "tcf.redisclient",
+				}).Info("Subscription started: ", v.Channel)
 
 			case error:
-				fmt.Printf("Redis disconnected: %v\n", v)
+				log.WithFields(logrus.Fields{
+					"prefix": "tcf.redisclient",
+				}).Error("Redis disconnected: ", v)
 			}
 		}
-		fmt.Println(errors.New("Connection closed."))
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.redisclient",
+		}).Warning("Connection closed")
 
 	}(filter, handler)
 
-	fmt.Printf("SUBSCRIBED: %v \n", filter)
 	return nil
 }
 

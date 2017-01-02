@@ -4,7 +4,7 @@ import (
 	"strings"
 	"errors"
 	"strconv"
-	"fmt"
+	"github.com/TykTechnologies/logrus"
 )
 
 // Client is a queue client managed by TCF
@@ -27,6 +27,9 @@ func NewClient(connectionString string, baselineEncoding encoding) (Client, erro
 	transport := parts[0]
 	switch transport {
 	case "dummy":
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf",
+		}).Info("Using dummy back-end")
 		connParts := strings.Split(parts[1], ":")
 		if len(connParts) > 2 {
 			return nil, errors.New("Detected IPv6 address, this is not supported yet")
@@ -45,7 +48,9 @@ func NewClient(connectionString string, baselineEncoding encoding) (Client, erro
 		c.Init(nil)
 		return c, nil
 	case "redis":
-		fmt.Println("REDIS CLIENT")
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf",
+		}).Info("Using Redis back-end")
 		c := &RedisClient{
 			URL: connectionString,
 		}

@@ -1,9 +1,9 @@
 package tcf
 
 import (
-	"fmt"
 	"encoding/json"
 	"errors"
+	"github.com/TykTechnologies/logrus"
 )
 
 // A payload is a type of object that can be used to send around a queue managed by TCF
@@ -24,7 +24,10 @@ type Payload interface {
 
 // Verify will check the signature if enabled
 func (p *DefaultPayload) Verify() error {
-	fmt.Println("TODO: Implement Verification logic in default paylolad handler!")
+	log.WithFields(logrus.Fields{
+		"prefix": "tcf.defaultpayload",
+	}).Warning("TODO: Implement Verification logic in default paylolad handler!")
+
 	return nil
 }
 
