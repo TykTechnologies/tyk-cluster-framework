@@ -13,7 +13,7 @@ type Config struct {
 	RaftDir string
 }
 
-var TCFRaftyConfig Config = Config{
+var tcfRaftyConfig Config = Config{
 	HttpServerAddr: DefaultHTTPAddr,
 	RaftServerAddress: DefaultRaftAddr,
 	JoinTimeout: 60,

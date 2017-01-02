@@ -17,9 +17,16 @@ import (
 var log = logger.GetLogger()
 var logPrefix string = "tcf.rafty"
 
-func StartServer(JoinAddress string) {
+func StartServer(JoinAddress string, raftyConfig *Config) {
+	if raftyConfig == nil {
+		log.WithFields(logrus.Fields{
+			"prefix": logPrefix,
+		}).Warning("No raft configuration found, using defaults")
+		raftyConfig = &raftyConfig
+	}
+
 	// Ensure Raft storage exists.
-	raftDir  := TCFRaftyConfig.RaftDir
+	raftDir  := raftyConfig.RaftDir
 	if raftDir == "" {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
@@ -29,15 +36,15 @@ func StartServer(JoinAddress string) {
 	os.MkdirAll(raftDir, 0700)
 
 	s := store.New()
-	s.RaftDir = TCFRaftyConfig.RaftDir
-	s.RaftBind = TCFRaftyConfig.RaftServerAddress
+	s.RaftDir = raftyConfig.RaftDir
+	s.RaftBind = raftyConfig.RaftServerAddress
 	if err := s.Open(JoinAddress == ""); err != nil {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
 		}).Fatal("Failed to open store: ", err)
 	}
 
-	h := httpd.New(TCFRaftyConfig.HttpServerAddr, s)
+	h := httpd.New(raftyConfig.HttpServerAddr, s)
 	if err := h.Start(); err != nil {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
@@ -46,7 +53,7 @@ func StartServer(JoinAddress string) {
 
 	// If join was specified, make the join request.
 	if JoinAddress != "" {
-		if err := join(JoinAddress, TCFRaftyConfig.RaftServerAddress); err != nil {
+		if err := join(JoinAddress, raftyConfig.RaftServerAddress); err != nil {
 			log.WithFields(logrus.Fields{
 				"prefix": logPrefix,
 			}).Fatalf("Failed to join node at %s: %v", JoinAddress, err)
