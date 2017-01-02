@@ -26,7 +26,7 @@ type Payload interface {
 func (p *DefaultPayload) Verify() error {
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.defaultpayload",
-	}).Warning("TODO: Implement Verification logic in default paylolad handler!")
+	}).Debug("TODO: Implement verification logic!")
 
 	return nil
 }
