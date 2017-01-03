@@ -17,12 +17,12 @@ import (
 var log = logger.GetLogger()
 var logPrefix string = "tcf.rafty"
 
-func StartServer(JoinAddress string, raftyConfig *Config) {
+func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signal) {
 	if raftyConfig == nil {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
 		}).Warning("No raft configuration found, using defaults")
-		raftyConfig = &raftyConfig
+		raftyConfig = raftyConfig
 	}
 
 	// Ensure Raft storage exists.
@@ -64,9 +64,8 @@ func StartServer(JoinAddress string, raftyConfig *Config) {
 		"prefix": logPrefix,
 	}).Info("Raft server started successfully")
 
-	terminate := make(chan os.Signal, 1)
-	signal.Notify(terminate, os.Interrupt)
-	<-terminate
+	signal.Notify(killChan, os.Interrupt)
+	<-killChan
 	log.WithFields(logrus.Fields{
 		"prefix": logPrefix,
 	}).Info("Raft server exiting")

@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-// Se3rver represents a server object that accepts connections for a queue service
+// Server represents a server object that accepts connections for a queue service
 type Server interface {
 	Listen() error
 	Publish(string, Payload) error
