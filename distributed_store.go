@@ -5,7 +5,6 @@ import (
 	"os"
 	"github.com/nu7hatch/gouuid"
 	"github.com/TykTechnologies/logrus"
-	"errors"
 	"fmt"
 )
 
