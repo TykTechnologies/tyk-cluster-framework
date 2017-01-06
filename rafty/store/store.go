@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
 	"github.com/TykTechnologies/logrus"
+	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 var log = logger.GetLogger()
@@ -34,7 +35,7 @@ const (
 type command struct {
 	Op    string `json:"op,omitempty"`
 	Key   string `json:"key,omitempty"`
-	Value string `json:"value,omitempty"`
+	Value []byte `json:"value,omitempty"`
 }
 
 // Store is a simple key-value store, where all changes are made via Raft consensus.
@@ -43,7 +44,7 @@ type Store struct {
 	RaftBind string
 
 	mu sync.Mutex
-	m  map[string]string // The key-value store for the system.
+	m  map[string][]byte // The key-value store for the system.
 
 	raft *raft.Raft // The consensus mechanism
 
@@ -53,8 +54,8 @@ type Store struct {
 // New returns a new Store.
 func New() *Store {
 	return &Store{
-		m:      make(map[string]string),
-		logger: logger.GetLogger(),
+		m:      make(map[string][]byte),
+		logger: log,
 	}
 }
 
@@ -115,14 +116,14 @@ func (s *Store) Open(enableSingle bool) error {
 }
 
 // Get returns the value for the given key.
-func (s *Store) Get(key string) (string, error) {
+func (s *Store) Get(key string) ([]byte, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.m[key], nil
 }
 
 // Set sets the value for the given key.
-func (s *Store) Set(key, value string) error {
+func (s *Store) Set(key string, value []byte) error {
 	if s.raft.State() != raft.Leader {
 		return fmt.Errorf("not leader")
 	}
@@ -132,7 +133,7 @@ func (s *Store) Set(key, value string) error {
 		Key:   key,
 		Value: value,
 	}
-	b, err := json.Marshal(c)
+	b, err := msgpack.Marshal(c)
 	if err != nil {
 		return err
 	}
@@ -151,7 +152,7 @@ func (s *Store) Delete(key string) error {
 		Op:  "delete",
 		Key: key,
 	}
-	b, err := json.Marshal(c)
+	b, err := msgpack.Marshal(c)
 	if err != nil {
 		return err
 	}
@@ -182,7 +183,7 @@ type fsm Store
 // Apply applies a Raft log entry to the key-value store.
 func (f *fsm) Apply(l *raft.Log) interface{} {
 	var c command
-	if err := json.Unmarshal(l.Data, &c); err != nil {
+	if err := msgpack.Unmarshal(l.Data, &c); err != nil {
 		panic(fmt.Sprintf("failed to unmarshal command: %s", err.Error()))
 	}
 
@@ -202,7 +203,7 @@ func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
 	defer f.mu.Unlock()
 
 	// Clone the map.
-	o := make(map[string]string)
+	o := make(map[string][]byte)
 	for k, v := range f.m {
 		o[k] = v
 	}
@@ -211,8 +212,8 @@ func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
 
 // Restore stores the key-value store to a previous state.
 func (f *fsm) Restore(rc io.ReadCloser) error {
-	o := make(map[string]string)
-	if err := json.NewDecoder(rc).Decode(&o); err != nil {
+	o := make(map[string][]byte)
+	if err := msgpack.NewDecoder(rc).Decode(&o); err != nil {
 		return err
 	}
 
@@ -222,7 +223,7 @@ func (f *fsm) Restore(rc io.ReadCloser) error {
 	return nil
 }
 
-func (f *fsm) applySet(key, value string) interface{} {
+func (f *fsm) applySet(key string, value []byte) interface{} {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.m[key] = value
@@ -237,13 +238,13 @@ func (f *fsm) applyDelete(key string) interface{} {
 }
 
 type fsmSnapshot struct {
-	store map[string]string
+	store map[string][]byte
 }
 
 func (f *fsmSnapshot) Persist(sink raft.SnapshotSink) error {
 	err := func() error {
 		// Encode data.
-		b, err := json.Marshal(f.store)
+		b, err := msgpack.Marshal(f.store)
 		if err != nil {
 			return err
 		}
