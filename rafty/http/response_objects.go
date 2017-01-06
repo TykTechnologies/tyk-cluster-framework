@@ -50,6 +50,7 @@ type ErrorCode struct {
 var (
 	RAFTErrorNotFound        ErrorCode = ErrorCode{100, "Key not found"}
 	RAFTErrorWithApplication ErrorCode = ErrorCode{101, "Application error"}
+	RAFTErrorKeyExists       ErrorCode = ErrorCode{102, "Key Exists"}
 )
 
 type ErrorResponse struct {

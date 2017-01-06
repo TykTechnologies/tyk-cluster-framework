@@ -12,7 +12,6 @@ import (
 	"github.com/gorilla/schema"
 	"gopkg.in/vmihailenco/msgpack.v2"
 	"fmt"
-	"time"
 )
 
 var log = logger.GetLogger()
@@ -43,6 +42,7 @@ type Service struct {
 	tlsConfig *TLSConfig
 
 	store Store
+	StorageAPI StorageAPI
 }
 
 // New returns an uninitialized HTTP service.
@@ -50,6 +50,7 @@ func New(addr string, store Store) *Service {
 	return &Service{
 		addr:  addr,
 		store: store,
+		StorageAPI: StorageAPI{store},
 	}
 }
 
@@ -136,25 +137,7 @@ func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Service) getKeyFromStore(k string) ([]byte, *ErrorResponse) {
-	if k == "" {
-		return nil, NewErrorResponse("/"+k, "Key cannot be empty")
-	}
 
-	v, err := s.store.Get(k)
-	if err != nil {
-		thisErr := NewErrorNotFound("/"+k)
-		thisErr.MetaData = err.Error()
-		return nil, thisErr
-	}
-
-	if v == nil {
-		thisErr := NewErrorNotFound("/"+k)
-		return nil, thisErr
-	}
-
-	return v, nil
-}
 
 func (s *Service) handleGetKey(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -165,22 +148,14 @@ func (s *Service) handleGetKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the existing value
-	v, errResp := s.getKeyFromStore(k)
+	returnValue, errResp := s.StorageAPI.GetKey(k)
 	if errResp != nil {
-		s.writeToClient(w, r, errResp, http.StatusNotFound)
-		return
-	}
+		if errResp.Error == RAFTErrorNotFound {
+			s.writeToClient(w, r, errResp, http.StatusNotFound)
+			return
+		}
 
-	// Decode it
-	returnValue, err := NewKeyValueAPIObjectFromMsgPack(v)
-	if err != nil {
-		s.writeToClient(w, r, NewErrorResponse("/"+k, "Key marshalling failed: " + err.Error()), http.StatusInternalServerError)
-		return
-	}
-
-	if time.Now().After(returnValue.Node.Expiration) {
-		s.writeToClient(w, r, NewErrorNotFound("/"+k), http.StatusNotFound)
-		return
+		s.writeToClient(w, r, errResp, http.StatusBadRequest)
 	}
 
 	s.writeToClient(w, r, returnValue, 200)
@@ -191,22 +166,6 @@ func (s *Service) handleCreateKey(w http.ResponseWriter, r *http.Request) {
 	k := vars["name"]
 	if k == "" {
 		s.writeToClient(w, r, NewErrorResponse("/", "key cannot be empty for POST"), http.StatusBadRequest)
-		return
-	}
-
-	// Don't allow overwriting unless expired
-	existingValue, errResp := s.getKeyFromStore(k)
-	asNode, checkErr := NewKeyValueAPIObjectFromMsgPack(existingValue)
-
-	var allowOverwrite bool
-	if checkErr == nil {
-		if time.Now().After(asNode.Node.Expiration) {
-			allowOverwrite = true
-		}
-	}
-
-	if errResp == nil && allowOverwrite == false {
-		s.writeToClient(w, r, NewErrorResponse("Key already exists", ""), http.StatusNotFound)
 		return
 	}
 
@@ -229,26 +188,21 @@ func (s *Service) handleCreateKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set expiry value
-	nodeData.CalculateExpiry()
-	nodeData.Created = time.Now().Unix()
-	toStore, encErr := nodeData.EncodeForStorage()
-
-	if encErr != nil {
-		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not encode payload for store: "+encErr.Error()), http.StatusBadRequest)
-		return
-	}
-
 	// Write data to the store
-	if err := s.store.Set(k, toStore); err != nil {
-		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not write to store: "+err.Error()), http.StatusInternalServerError)
+	toReturn, errResp := s.StorageAPI.SetKey(k, &nodeData)
+	if errResp != nil {
+		if errResp.Error == RAFTErrorKeyExists {
+			s.writeToClient(w, r, errResp, http.StatusBadRequest)
+			return
+		}
+
+		s.writeToClient(w, r, errResp, http.StatusInternalServerError)
 		return
 	}
 
 	// Return a successful create
 	returnData := NewKeyValueAPIObjectWithAction(ActionKeyCreated)
-	returnData.Node = &nodeData
-
+	returnData.Node = toReturn
 	s.writeToClient(w, r, returnData, 201)
 }
 
@@ -261,7 +215,7 @@ func (s *Service) handleUpdateKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the existing value
-	v, errResp := s.getKeyFromStore(k)
+	v, errResp := s.StorageAPI.getKeyFromStore(k)
 	if errResp != nil {
 		s.writeToClient(w, r, errResp, http.StatusNotFound)
 		return
@@ -326,19 +280,13 @@ func (s *Service) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.store.Delete(k); err != nil {
-		s.writeToClient(w, r, NewErrorResponse("/"+k, "Delete failed: " + err.Error()), http.StatusInternalServerError)
+	if err, _ := s.StorageAPI.DeleteKey(k); err != nil {
+		s.writeToClient(w, r, err, http.StatusInternalServerError)
 		return
 	}
-	s.store.Delete(k)
 
 	delResp := NewKeyValueAPIObjectWithAction(ActionKeyDeleted)
 	delResp.Node.Key = "/"+k
 
 	s.writeToClient(w, r, delResp, http.StatusInternalServerError)
 }
-
-//// Addr returns the address on which the Service is listening
-//func (s *Service) Addr() net.Addr {
-//	return s.ln.Addr()
-//}
