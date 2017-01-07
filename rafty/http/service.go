@@ -32,6 +32,12 @@ type Store interface {
 
 	// Returns whether the store is leader or not
 	IsLeader() bool
+
+	// RemovePeer removes a peer
+	RemovePeer(string) error
+
+	// Leader returns th leader addr
+	Leader() string
 }
 
 type TLSConfig struct {
@@ -63,6 +69,7 @@ func (s *Service) Start() error {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/join", s.handleJoin).Methods("POST")
+	r.HandleFunc("/remove", s.handleRemove).Methods("POST")
 	r.HandleFunc("/key/{name}", s.handleGetKey).Methods("GET")
 	r.HandleFunc("/key/{name}", s.handleUpdateKey).Methods("PUT")
 	r.HandleFunc("/key/{name}", s.handleCreateKey).Methods("POST")
@@ -141,8 +148,33 @@ func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Service) handleRemove(w http.ResponseWriter, r *http.Request) {
+	log.Info("REMOVING PEER")
+	m := map[string]string{}
+	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if len(m) != 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	remoteAddr, ok := m["addr"]
+	if !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 
+	if err := s.store.RemovePeer(remoteAddr); err != nil {
+		log.Error("FAILED TO REMOVE PEER: ", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	log.Info("PEER REMOVED")
+}
 func (s *Service) handleGetKey(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	k := vars["name"]

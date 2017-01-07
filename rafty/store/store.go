@@ -66,6 +66,7 @@ func (s *Store) Open(enableSingle bool) error {
 	config := raft.DefaultConfig()
 	convertedLogger := &ConvertedLogrusLogger{Prefix:"tcf.rafty.raft", LogInstance: log}
 	config.LogOutput = convertedLogger
+	config.ShutdownOnRemove = false
 
 	// Check for any existing peers.
 	peers, err := readPeersJSON(filepath.Join(s.RaftDir, "peers.json"))
@@ -115,6 +116,10 @@ func (s *Store) Open(enableSingle bool) error {
 	}
 	s.raft = ra
 	return nil
+}
+
+func (s *Store) Leader() string {
+	return s.raft.Leader()
 }
 
 // Get returns the value for the given key.
@@ -177,6 +182,15 @@ func (s *Store) Join(addr string) error {
 	s.logger.WithFields(logrus.Fields{
 		"prefix": "tcf.rafty.store",
 	}).Infof("node at %s joined successfully", addr)
+	return nil
+}
+
+func (s *Store) RemovePeer(addr string) error {
+	if s.raft.State() != raft.Leader {
+		return fmt.Errorf("not leader")
+	}
+
+	s.raft.RemovePeer(addr)
 	return nil
 }
 

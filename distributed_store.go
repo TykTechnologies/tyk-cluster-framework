@@ -44,7 +44,7 @@ func (d *DistributedStore) Start(joinAddress string) {
 	}).Info("Distrubuted storage engine started: ", serverID)
 }
 
-func (d *DistributedStore) Stop(joinAddress string) error {
+func (d *DistributedStore) Stop() error {
 	killChan, found := DistributedStores[d.serverID]
 	if !found {
 		return fmt.Errorf("Could not find server ID to stop: %v", d.serverID)
