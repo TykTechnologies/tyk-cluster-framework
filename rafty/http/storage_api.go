@@ -121,7 +121,7 @@ func (s *StorageAPI) SetKey(k string, value *rafty_objects.NodeValue) (*rafty_ob
 	}
 
 	// Track the TTL
-	if value.TTL > 0 {
+	if value.TTL > 0  && value.Key != TTLSNAPSHOT_KEY {
 		s.trackTTLForKey(value.Key, value.Expiration.Unix())
 	}
 
