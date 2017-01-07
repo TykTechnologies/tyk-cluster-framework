@@ -29,6 +29,9 @@ type Store interface {
 
 	// Join joins the node, reachable at addr, to the cluster.
 	Join(addr string) error
+
+	// Returns whether the store is leader or not
+	IsLeader() bool
 }
 
 type TLSConfig struct {
@@ -42,7 +45,7 @@ type Service struct {
 	tlsConfig *TLSConfig
 
 	store Store
-	StorageAPI StorageAPI
+	StorageAPI *StorageAPI
 }
 
 // New returns an uninitialized HTTP service.
@@ -50,7 +53,7 @@ func New(addr string, store Store, tlsConfig *TLSConfig) *Service {
 	return &Service{
 		addr:  addr,
 		store: store,
-		StorageAPI: StorageAPI{store},
+		StorageAPI: NewStorageAPI(store),
 		tlsConfig: tlsConfig,
 	}
 }
@@ -270,7 +273,7 @@ func (s *Service) handleUpdateKey(w http.ResponseWriter, r *http.Request) {
 	returnData := NewKeyValueAPIObjectWithAction(ActionKeyModified)
 	returnData.Node = &nodeValue
 
-	s.writeToClient(w, r, returnData, 201)
+	s.writeToClient(w, r, returnData, http.StatusOK)
 }
 
 func (s *Service) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
@@ -289,5 +292,5 @@ func (s *Service) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 	delResp := NewKeyValueAPIObjectWithAction(ActionKeyDeleted)
 	delResp.Node.Key = "/"+k
 
-	s.writeToClient(w, r, delResp, http.StatusInternalServerError)
+	s.writeToClient(w, r, delResp, http.StatusOK)
 }

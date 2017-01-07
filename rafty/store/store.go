@@ -180,6 +180,13 @@ func (s *Store) Join(addr string) error {
 	return nil
 }
 
+func (s *Store) IsLeader() bool {
+	if s.raft.State() == raft.Leader {
+		return true
+	}
+	return false
+}
+
 type fsm Store
 
 // Apply applies a Raft log entry to the key-value store.

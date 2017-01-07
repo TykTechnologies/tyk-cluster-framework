@@ -3,6 +3,7 @@ package store
 import (
 	"github.com/TykTechnologies/logrus"
 	"strings"
+
 )
 
 type ConvertedLogrusLogger struct {
@@ -13,25 +14,25 @@ type ConvertedLogrusLogger struct {
 func (c *ConvertedLogrusLogger) Write(p []byte) (n int, err error) {
 	if c.LogInstance != nil {
 		asStr := string(p)
-		if strings.HasPrefix(asStr, "[DEBUG]") {
+		if strings.Contains(asStr, "[DEBUG]") {
 			fixed := strings.Replace(asStr, "[DEBUG]", "", 1)
 			c.LogInstance.WithFields(logrus.Fields{
 				"prefix": c.Prefix,
 			}).Debug(fixed)
 		}
-		if strings.HasPrefix(asStr, "[INFO]") {
+		if strings.Contains(asStr, "[INFO]") {
 			fixed := strings.Replace(asStr, "[INFO]", "", 1)
 			c.LogInstance.WithFields(logrus.Fields{
 				"prefix": c.Prefix,
 			}).Info(fixed)
 		}
-		if strings.HasPrefix(asStr, "[ERR]") {
+		if strings.Contains(asStr, "[ERR]") {
 			fixed := strings.Replace(asStr, "[ERR]", "", 1)
 			c.LogInstance.WithFields(logrus.Fields{
 				"prefix": c.Prefix,
 			}).Error(fixed)
 		}
-		if strings.HasPrefix(asStr, "[WARN]") {
+		if strings.Contains(asStr, "[WARN]") {
 			fixed := strings.Replace(asStr, "[WARNING]", "", 1)
 			c.LogInstance.WithFields(logrus.Fields{
 				"prefix": c.Prefix,

@@ -18,6 +18,7 @@ var log = logger.GetLogger()
 var logPrefix string = "tcf.rafty"
 
 func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signal) {
+	log.Info("Log level: ", os.Getenv("TYK_LOGLEVEL"))
 	if raftyConfig == nil {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,

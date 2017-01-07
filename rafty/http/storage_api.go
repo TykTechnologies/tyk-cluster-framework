@@ -3,12 +3,64 @@ package httpd
 import (
 	"time"
 	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/rafty/objects"
+	"github.com/foize/go.fifo"
 
+	"sync"
+	"encoding/json"
+	"github.com/TykTechnologies/logrus"
 )
 
-// StorageAPI exposes the raw store getters and setters
+const (
+	TTLSNAPSHOT_KEY = "TCF_TTL_SNAPHOT"
+)
+
+type SnapshotStatus int
+
+const (
+	StatusSnapshotFound SnapshotStatus = 1
+	StatusSnapshotNotFound SnapshotStatus = 2
+	StatusSnapshotNotLeader SnapshotStatus = 3
+)
+
+type qSnapShot struct {
+	qmu sync.Mutex
+	queueSnapshot map[string]ttlIndexElement
+}
+
+func (q *qSnapShot) GetSnapshot() map[string]ttlIndexElement {
+	q.qmu.Lock()
+
+	thisCopy := q.queueSnapshot
+	q.qmu.Unlock()
+	return thisCopy
+}
+
+func newQueueSnapShot() *qSnapShot {
+	return &qSnapShot{
+		queueSnapshot: make(map[string]ttlIndexElement),
+	}
+}
+
+// StorageAPI exposes the raw store getters and setters and adds a TTL handler
 type StorageAPI struct{
 	store Store
+	ttlIndex *fifo.Queue
+	queueSnapshot *qSnapShot
+}
+
+func NewStorageAPI(store Store) *StorageAPI {
+	thisSA :=  &StorageAPI{
+		store: store,
+		ttlIndex: fifo.NewQueue(),
+		queueSnapshot: newQueueSnapShot(),
+	}
+
+	log.WithFields(logrus.Fields{
+		"prefix": "tcf.rafty.storage-api",
+	}).Info("Starting TTL Processor")
+	go thisSA.processTTLs()
+
+	return thisSA
 }
 
 func (s *StorageAPI) GetKey(k string) (*KeyValueAPIObject, *ErrorResponse) {
@@ -25,7 +77,10 @@ func (s *StorageAPI) GetKey(k string) (*KeyValueAPIObject, *ErrorResponse) {
 
 	}
 
-	if time.Now().After(returnValue.Node.Expiration) {
+	if time.Now().After(returnValue.Node.Expiration) && returnValue.Node.TTL != 0 {
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.rafty.storage-api",
+		}).Debug("KEY EXISTS BUT HAS EXPIRED")
 		return nil, NewErrorNotFound("/"+k)
 	}
 
@@ -65,6 +120,11 @@ func (s *StorageAPI) SetKey(k string, value *rafty_objects.NodeValue) (*rafty_ob
 		return nil, NewErrorResponse("/"+k, "Could not write to store: "+err.Error())
 	}
 
+	// Track the TTL
+	if value.TTL > 0 {
+		s.trackTTLForKey(value.Key, value.Expiration.Unix())
+	}
+
 	return value, nil
 }
 
@@ -94,4 +154,159 @@ func (s *StorageAPI) getKeyFromStore(k string) ([]byte, *ErrorResponse) {
 	}
 
 	return v, nil
+}
+
+type ttlIndexElement struct {
+	TTL int64
+	Key string
+	Index int
+}
+
+func (s *StorageAPI) trackTTLForKey(key string, expires int64) {
+	s.addTTL(ttlIndexElement{TTL: expires, Key: key})
+}
+
+func (s *StorageAPI) addTTL(elem ttlIndexElement) {
+	if s.store.IsLeader() == false {
+		return
+	}
+
+	s.ttlIndex.Add(elem)
+
+	// Store the change in our snapshot
+	elem.Index = s.ttlIndex.Len()
+	s.queueSnapshot.qmu.Lock()
+	defer s.queueSnapshot.qmu.Unlock()
+	s.queueSnapshot.queueSnapshot[elem.Key] = elem
+}
+
+func (s *StorageAPI) processTTLElement() {
+	if s.store.IsLeader() == false {
+		return
+	}
+
+	log.WithFields(logrus.Fields{
+		"prefix": "tcf.rafty.storage-api",
+	}).Debug("Getting next element")
+	thisElem := s.ttlIndex.Next()
+
+	if thisElem == nil {
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.rafty.storage-api",
+		}).Debug("Element is empty!")
+		return
+	}
+
+	// It's not in the queue, aso it shouldn't be in the snapshot
+	s.queueSnapshot.qmu.Lock()
+	delete(s.queueSnapshot.queueSnapshot, thisElem.(ttlIndexElement).Key)
+	log.WithFields(logrus.Fields{
+		"prefix": "tcf.rafty.storage-api",
+	}).Debug("Updated queue snapshot")
+	s.queueSnapshot.qmu.Unlock()
+	s.storeTTLSnapshot()
+
+	// Check expiry
+	tn := time.Now().Unix()
+	log.WithFields(logrus.Fields{
+		"prefix": "tcf.rafty.storage-api",
+	}).Debug("Exp is: ", thisElem.(ttlIndexElement).TTL)
+	log.WithFields(logrus.Fields{
+		"prefix": "tcf.rafty.storage-api",
+	}).Debug("Now is: ", tn)
+	if tn > thisElem.(ttlIndexElement).TTL {
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.rafty.storage-api",
+		}).Debug("-> Removing key because expired")
+		s.DeleteKey(thisElem.(ttlIndexElement).Key)
+	} else {
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.rafty.storage-api",
+		}).Debug("Expiry not reached yet, adding back to stack")
+		s.addTTL(thisElem.(ttlIndexElement))
+	}
+}
+
+func (s *StorageAPI) rebuildFromSnapshot(intoFifoQ *fifo.Queue) SnapshotStatus {
+	if s.store.IsLeader() == false {
+		return StatusSnapshotNotLeader
+	}
+
+	existingSnapShot, err := s.GetKey(TTLSNAPSHOT_KEY)
+	if err != nil {
+		return StatusSnapshotNotFound
+	}
+
+	if existingSnapShot == nil {
+		return StatusSnapshotNotFound
+	}
+
+	var snapShotAsArray map[string]ttlIndexElement
+	decErr := json.Unmarshal([]byte(existingSnapShot.Node.Value), &snapShotAsArray)
+	if decErr != nil {
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.rafty.storage-api",
+		}).Error("Failed to decode snapshot backup")
+		return StatusSnapshotNotFound
+	}
+
+	for _, elem := range snapShotAsArray {
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.rafty.storage-api",
+		}).Debug("ADDING SNAPSHOT: ", elem.Key)
+		intoFifoQ.Add(elem)
+	}
+
+	return StatusSnapshotFound
+}
+
+func (s *StorageAPI) storeTTLSnapshot() {
+	if s.store.IsLeader() == false {
+		return
+	}
+
+	thisSnapShot := s.queueSnapshot.GetSnapshot()
+	asStr, encErr := json.Marshal(thisSnapShot)
+
+	if encErr != nil {
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.rafty.storage-api",
+		}).Error("Failed to decode TTL Snapshot")
+		return
+	}
+
+	existingSnapShot, err := s.GetKey(TTLSNAPSHOT_KEY)
+	if err != nil {
+		existingSnapShot = NewKeyValueAPIObject()
+		existingSnapShot.Node.Key = TTLSNAPSHOT_KEY
+	}
+
+	existingSnapShot.Node.Value = string(asStr)
+	s.SetKey(TTLSNAPSHOT_KEY, existingSnapShot.Node)
+}
+
+func (s *StorageAPI) processTTLs() {
+	for {
+		if s.store.IsLeader() {
+			// No queue? try to rebuild or reset it
+			if s.queueSnapshot == nil {
+				log.Debug("Queue is empty, attempting to rebuild")
+				s.queueSnapshot = newQueueSnapShot()
+				status := s.rebuildFromSnapshot(s.ttlIndex)
+				if status == StatusSnapshotFound {
+					log.Debug("No snapshot found, initialising a fresh queue")
+					s.storeTTLSnapshot()
+				}
+			}
+
+			// Process the next TTL item (but store snapshot in case we fail)
+			s.processTTLElement()
+		} else {
+			// Not a leader, kill the queue we have
+			s.queueSnapshot = nil
+		}
+
+		// Process every few seconds
+		time.Sleep(5 * time.Second)
+	}
 }
