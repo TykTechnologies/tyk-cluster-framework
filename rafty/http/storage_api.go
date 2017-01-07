@@ -94,7 +94,7 @@ func (s *StorageAPI) SetKey(k string, value *rafty_objects.NodeValue) (*rafty_ob
 
 	var allowOverwrite bool
 	if checkErr == nil {
-		if time.Now().After(asNode.Node.Expiration) {
+		if time.Now().After(asNode.Node.Expiration) && asNode.Node.TTL != 0 {
 			allowOverwrite = true
 		}
 	}
