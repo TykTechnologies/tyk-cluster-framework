@@ -62,8 +62,10 @@ func New() *Store {
 // Open opens the store. If enableSingle is set, and there are no existing peers,
 // then this node becomes the first node, and therefore leader, of the cluster.
 func (s *Store) Open(enableSingle bool) error {
-	// Setup Raft configuration.
+	// Setup Raft configuration with our custom writer to convert to logrus
 	config := raft.DefaultConfig()
+	convertedLogger := &ConvertedLogrusLogger{Prefix:"tcf.rafty.raft", LogInstance: log}
+	config.LogOutput = convertedLogger
 
 	// Check for any existing peers.
 	peers, err := readPeersJSON(filepath.Join(s.RaftDir, "peers.json"))
@@ -76,7 +78,7 @@ func (s *Store) Open(enableSingle bool) error {
 	if enableSingle && len(peers) <= 1 {
 		s.logger.WithFields(logrus.Fields{
 			"prefix": "tcf.rafty.store",
-		}).Println("enabling single-node mode")
+		}).Info("enabling single-node mode")
 		config.EnableSingleNode = true
 		config.DisableBootstrapAfterElect = false
 	}
@@ -166,7 +168,7 @@ func (s *Store) Delete(key string) error {
 func (s *Store) Join(addr string) error {
 	s.logger.WithFields(logrus.Fields{
 		"prefix": "tcf.rafty.store",
-	}).Printf("received join request for remote node as %s", addr)
+	}).Info("received join request for remote node as: ", addr)
 
 	f := s.raft.AddPeer(addr)
 	if f.Error() != nil {
@@ -174,7 +176,7 @@ func (s *Store) Join(addr string) error {
 	}
 	s.logger.WithFields(logrus.Fields{
 		"prefix": "tcf.rafty.store",
-	}).Printf("node at %s joined successfully", addr)
+	}).Infof("node at %s joined successfully", addr)
 	return nil
 }
 
@@ -184,7 +186,7 @@ type fsm Store
 func (f *fsm) Apply(l *raft.Log) interface{} {
 	var c command
 	if err := msgpack.Unmarshal(l.Data, &c); err != nil {
-		panic(fmt.Sprintf("failed to unmarshal command: %s", err.Error()))
+		log.Fatalf(fmt.Sprintf("failed to unmarshal command: %s", err.Error()))
 	}
 
 	switch c.Op {

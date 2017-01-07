@@ -1,5 +1,9 @@
 package rafty
 
+import (
+	"github.com/TykTechnologies/tyk-cluster-framework/rafty/http"
+)
+
 // Config defaults
 const (
 	DefaultHTTPAddr = ":11000"
@@ -11,6 +15,7 @@ type Config struct {
 	RaftServerAddress string
 	JoinTimeout int
 	RaftDir string
+	TLSConfig *httpd.TLSConfig
 }
 
 var tcfRaftyConfig Config = Config{

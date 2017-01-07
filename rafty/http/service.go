@@ -46,11 +46,12 @@ type Service struct {
 }
 
 // New returns an uninitialized HTTP service.
-func New(addr string, store Store) *Service {
+func New(addr string, store Store, tlsConfig *TLSConfig) *Service {
 	return &Service{
 		addr:  addr,
 		store: store,
 		StorageAPI: StorageAPI{store},
+		tlsConfig: tlsConfig,
 	}
 }
 

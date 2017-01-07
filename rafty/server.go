@@ -44,7 +44,7 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 		}).Fatal("Failed to open store: ", err)
 	}
 
-	h := httpd.New(raftyConfig.HttpServerAddr, s)
+	h := httpd.New(raftyConfig.HttpServerAddr, s, raftyConfig.TLSConfig)
 	if err := h.Start(); err != nil {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
@@ -53,7 +53,7 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 
 	// If join was specified, make the join request.
 	if JoinAddress != "" {
-		if err := join(JoinAddress, raftyConfig.RaftServerAddress); err != nil {
+		if err := join(JoinAddress, raftyConfig.RaftServerAddress, raftyConfig.TLSConfig != nil); err != nil {
 			log.WithFields(logrus.Fields{
 				"prefix": logPrefix,
 			}).Fatalf("Failed to join node at %s: %v", JoinAddress, err)
@@ -71,13 +71,18 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 	}).Info("Raft server exiting")
 }
 
-func join(joinAddr, raftAddr string) error {
+func join(joinAddr, raftAddr string, secure bool) error {
 	b, err := json.Marshal(map[string]string{"addr": raftAddr})
 	if err != nil {
 		return err
 	}
+
+	trans := "http"
+	if secure {
+		trans = "https"
+	}
 	resp, err := http.Post(
-		fmt.Sprintf("http://%s/join", joinAddr),
+		fmt.Sprintf(trans+"://%s/join", joinAddr),
 		"application-type/json",
 		bytes.NewReader(b))
 
