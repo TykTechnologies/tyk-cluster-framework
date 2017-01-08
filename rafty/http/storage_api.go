@@ -46,6 +46,7 @@ type StorageAPI struct{
 	store Store
 	ttlIndex *fifo.Queue
 	queueSnapshot *qSnapShot
+	TTLChunkSize int
 }
 
 func NewStorageAPI(store Store) *StorageAPI {
@@ -53,6 +54,7 @@ func NewStorageAPI(store Store) *StorageAPI {
 		store: store,
 		ttlIndex: fifo.NewQueue(),
 		queueSnapshot: newQueueSnapShot(),
+		TTLChunkSize: 100,
 	}
 
 	log.WithFields(logrus.Fields{
@@ -63,7 +65,7 @@ func NewStorageAPI(store Store) *StorageAPI {
 	return thisSA
 }
 
-func (s *StorageAPI) GetKey(k string) (*KeyValueAPIObject, *ErrorResponse) {
+func (s *StorageAPI) GetKey(k string, evenIfExpired bool) (*KeyValueAPIObject, *ErrorResponse) {
 	// Get the existing value
 	v, errResp := s.getKeyFromStore(k)
 	if errResp != nil {
@@ -77,7 +79,7 @@ func (s *StorageAPI) GetKey(k string) (*KeyValueAPIObject, *ErrorResponse) {
 
 	}
 
-	if time.Now().After(returnValue.Node.Expiration) && returnValue.Node.TTL != 0 {
+	if time.Now().After(returnValue.Node.Expiration) && returnValue.Node.TTL != 0 && evenIfExpired == false {
 		log.WithFields(logrus.Fields{
 			"prefix": "tcf.rafty.storage-api",
 		}).Debug("KEY EXISTS BUT HAS EXPIRED")
@@ -87,12 +89,12 @@ func (s *StorageAPI) GetKey(k string) (*KeyValueAPIObject, *ErrorResponse) {
 	return returnValue, nil
 }
 
-func (s *StorageAPI) SetKey(k string, value *rafty_objects.NodeValue) (*rafty_objects.NodeValue, *ErrorResponse) {
+func (s *StorageAPI) SetKey(k string, value *rafty_objects.NodeValue, overwrite bool) (*rafty_objects.NodeValue, *ErrorResponse) {
 	// Don't allow overwriting unless expired
 	existingValue, errResp := s.getKeyFromStore(k)
 	asNode, checkErr := NewKeyValueAPIObjectFromMsgPack(existingValue)
 
-	var allowOverwrite bool
+	var allowOverwrite = overwrite
 	if checkErr == nil {
 		if time.Now().After(asNode.Node.Expiration) && asNode.Node.TTL != 0 {
 			allowOverwrite = true
@@ -185,46 +187,82 @@ func (s *StorageAPI) processTTLElement() {
 		return
 	}
 
-	log.WithFields(logrus.Fields{
-		"prefix": "tcf.rafty.storage-api",
-	}).Debug("Getting next element")
-	thisElem := s.ttlIndex.Next()
-
-	if thisElem == nil {
+	max := s.TTLChunkSize
+	if s.ttlIndex.Len() < s.TTLChunkSize {
+		max = s.ttlIndex.Len()
+	}
+	applyDeletes := make([]ttlIndexElement, max)
+	for i := 0; i < max; i++ {
+		var skip bool
 		log.WithFields(logrus.Fields{
 			"prefix": "tcf.rafty.storage-api",
-		}).Debug("Element is empty!")
-		return
+		}).Debug("Getting next element")
+		thisElem := s.ttlIndex.Next()
+
+		if thisElem == nil {
+			log.WithFields(logrus.Fields{
+				"prefix": "tcf.rafty.storage-api",
+			}).Info("Element is empty - end of TTL queue")
+
+			// End of list, break out, no need to continue
+			break
+		}
+
+		// It's not in the queue, aso it shouldn't be in the snapshot
+		applyDeletes[i] = thisElem.(ttlIndexElement)
+
+		existingKey, getErr := s.GetKey(thisElem.(ttlIndexElement).Key, true)
+		if getErr != nil {
+			// can't get the key, no need to delete it
+			skip = true
+		}
+
+		if existingKey.Node.Expiration.Unix() != thisElem.(ttlIndexElement).TTL {
+			// Expiration has changed, so it must be in the queue again
+			log.WithFields(logrus.Fields{
+				"prefix": "tcf.rafty.storage-api",
+			}).Info("Skipping eviction for key, TTL has changed")
+			skip = true
+		}
+
+		if skip == false {
+			// Check expiry
+			tn := time.Now().Unix()
+			log.WithFields(logrus.Fields{
+				"prefix": "tcf.rafty.storage-api",
+			}).Debug("Exp is: ", thisElem.(ttlIndexElement).TTL)
+			log.WithFields(logrus.Fields{
+				"prefix": "tcf.rafty.storage-api",
+			}).Debug("Now is: ", tn)
+
+			if tn > thisElem.(ttlIndexElement).TTL {
+				log.WithFields(logrus.Fields{
+					"prefix": "tcf.rafty.storage-api",
+				}).Info("-> Removing key because expired")
+				s.DeleteKey(thisElem.(ttlIndexElement).Key)
+			} else {
+				log.WithFields(logrus.Fields{
+					"prefix": "tcf.rafty.storage-api",
+				}).Info("Expiry not reached yet, adding back to stack")
+				s.addTTL(thisElem.(ttlIndexElement))
+			}
+		}
+
+
 	}
 
-	// It's not in the queue, aso it shouldn't be in the snapshot
-	s.queueSnapshot.qmu.Lock()
-	delete(s.queueSnapshot.queueSnapshot, thisElem.(ttlIndexElement).Key)
-	log.WithFields(logrus.Fields{
-		"prefix": "tcf.rafty.storage-api",
-	}).Debug("Updated queue snapshot")
-	s.queueSnapshot.qmu.Unlock()
+	// Lets apply the delete operations to our queue
+	for _, elem := range(applyDeletes) {
+		s.queueSnapshot.qmu.Lock()
+		delete(s.queueSnapshot.queueSnapshot, elem.Key)
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.rafty.storage-api",
+		}).Debug("Updated queue snapshot")
+		s.queueSnapshot.qmu.Unlock()
+	}
+
+	// Store the bulk snapshot change
 	s.storeTTLSnapshot()
-
-	// Check expiry
-	tn := time.Now().Unix()
-	log.WithFields(logrus.Fields{
-		"prefix": "tcf.rafty.storage-api",
-	}).Debug("Exp is: ", thisElem.(ttlIndexElement).TTL)
-	log.WithFields(logrus.Fields{
-		"prefix": "tcf.rafty.storage-api",
-	}).Debug("Now is: ", tn)
-	if tn > thisElem.(ttlIndexElement).TTL {
-		log.WithFields(logrus.Fields{
-			"prefix": "tcf.rafty.storage-api",
-		}).Debug("-> Removing key because expired")
-		s.DeleteKey(thisElem.(ttlIndexElement).Key)
-	} else {
-		log.WithFields(logrus.Fields{
-			"prefix": "tcf.rafty.storage-api",
-		}).Debug("Expiry not reached yet, adding back to stack")
-		s.addTTL(thisElem.(ttlIndexElement))
-	}
 }
 
 func (s *StorageAPI) rebuildFromSnapshot(intoFifoQ *fifo.Queue) SnapshotStatus {
@@ -232,7 +270,7 @@ func (s *StorageAPI) rebuildFromSnapshot(intoFifoQ *fifo.Queue) SnapshotStatus {
 		return StatusSnapshotNotLeader
 	}
 
-	existingSnapShot, err := s.GetKey(TTLSNAPSHOT_KEY)
+	existingSnapShot, err := s.GetKey(TTLSNAPSHOT_KEY, false)
 	if err != nil {
 		return StatusSnapshotNotFound
 	}
@@ -275,14 +313,14 @@ func (s *StorageAPI) storeTTLSnapshot() {
 		return
 	}
 
-	existingSnapShot, err := s.GetKey(TTLSNAPSHOT_KEY)
+	existingSnapShot, err := s.GetKey(TTLSNAPSHOT_KEY, false)
 	if err != nil {
 		existingSnapShot = NewKeyValueAPIObject()
 		existingSnapShot.Node.Key = TTLSNAPSHOT_KEY
 	}
 
 	existingSnapShot.Node.Value = string(asStr)
-	s.SetKey(TTLSNAPSHOT_KEY, existingSnapShot.Node)
+	s.SetKey(TTLSNAPSHOT_KEY, existingSnapShot.Node, true)
 }
 
 func (s *StorageAPI) processTTLs() {

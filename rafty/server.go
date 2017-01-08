@@ -43,7 +43,9 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 	s := store.New()
 	s.RaftDir = raftyConfig.RaftDir
 	s.RaftBind = raftyConfig.RaftServerAddress
-	if err := s.Open(JoinAddress == ""); err != nil {
+
+	// We always allow single node mode
+	if err := s.Open(true); err != nil {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
 		}).Fatal("Failed to open store: ", err)
@@ -85,7 +87,10 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 				"prefix": logPrefix,
 			}).Error("Raft server tried to leave, error: ", leaveErr)
 		}
+		return
 	}
+
+	s.RemovePeer(raftyConfig.RaftServerAddress)
 }
 
 func join(joinAddr, raftAddr string, secure bool) error {

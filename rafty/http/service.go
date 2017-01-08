@@ -184,7 +184,7 @@ func (s *Service) handleGetKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the existing value
-	returnValue, errResp := s.StorageAPI.GetKey(k)
+	returnValue, errResp := s.StorageAPI.GetKey(k, false)
 	if errResp != nil {
 		if errResp.Error == RAFTErrorNotFound {
 			s.writeToClient(w, r, errResp, http.StatusNotFound)
@@ -225,7 +225,7 @@ func (s *Service) handleCreateKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write data to the store
-	toReturn, errResp := s.StorageAPI.SetKey(k, &nodeData)
+	toReturn, errResp := s.StorageAPI.SetKey(k, &nodeData, false)
 	if errResp != nil {
 		if errResp.Error == RAFTErrorKeyExists {
 			s.writeToClient(w, r, errResp, http.StatusBadRequest)
@@ -289,15 +289,9 @@ func (s *Service) handleUpdateKey(w http.ResponseWriter, r *http.Request) {
 		nodeValue.CalculateExpiry()
 	}
 
-	toStore, encErr := nodeValue.EncodeForStorage()
-	if encErr != nil {
-		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not encode payload for store: "+encErr.Error()), http.StatusBadRequest)
-		return
-	}
-
 	// Write data to the store
-	if err := s.store.Set(k, toStore); err != nil {
-		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not write to store: "+err.Error()), http.StatusInternalServerError)
+	if _, err := s.StorageAPI.SetKey(k, &nodeValue, true); err != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not write to store: "+err.Error.Reason), http.StatusInternalServerError)
 		return
 	}
 
