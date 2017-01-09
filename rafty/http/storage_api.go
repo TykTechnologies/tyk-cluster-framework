@@ -28,11 +28,27 @@ type qSnapShot struct {
 }
 
 func (q *qSnapShot) GetSnapshot() map[string]ttlIndexElement {
-	q.qmu.Lock()
+	return q.queueSnapshot
+}
 
-	thisCopy := q.queueSnapshot
+func (q *qSnapShot) SetElement(key string, value ttlIndexElement) {
+	q.qmu.Lock()
+	q.queueSnapshot[key] = value
 	q.qmu.Unlock()
-	return thisCopy
+}
+
+func (q *qSnapShot) String() string {
+	q.qmu.Lock()
+	defer q.qmu.Unlock()
+
+	asStr, err := json.Marshal(q.queueSnapshot)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.rafty.storage-api",
+		}).Error("Snapshot encoding failed: ", err)
+	}
+
+	return string(asStr)
 }
 
 func newQueueSnapShot() *qSnapShot {
@@ -180,9 +196,12 @@ func (s *StorageAPI) addTTL(elem ttlIndexElement) {
 
 	// Store the change in our snapshot
 	elem.Index = s.ttlIndex.Len()
-	s.queueSnapshot.qmu.Lock()
-	defer s.queueSnapshot.qmu.Unlock()
-	s.queueSnapshot.queueSnapshot[elem.Key] = elem
+
+	log.Debug("Storing: ", elem, " in queue snapshot")
+	s.queueSnapshot.SetElement(elem.Key, elem)
+
+	log.Debug("This snaphot contains: ", s.queueSnapshot.queueSnapshot)
+
 }
 
 func (s *StorageAPI) processTTLElement() {
@@ -205,14 +224,11 @@ func (s *StorageAPI) processTTLElement() {
 		if thisElem == nil {
 			log.WithFields(logrus.Fields{
 				"prefix": "tcf.rafty.storage-api",
-			}).Info("Element is empty - end of TTL queue")
+			}).Debug("Element is empty - end of TTL queue")
 
 			// End of list, break out, no need to continue
 			break
 		}
-
-		// It's not in the queue, aso it shouldn't be in the snapshot
-		applyDeletes[i] = thisElem.(ttlIndexElement)
 
 		existingKey, getErr := s.GetKey(thisElem.(ttlIndexElement).Key, true)
 		if getErr != nil {
@@ -224,7 +240,7 @@ func (s *StorageAPI) processTTLElement() {
 			// Expiration has changed, so it must be in the queue again
 			log.WithFields(logrus.Fields{
 				"prefix": "tcf.rafty.storage-api",
-			}).Info("Skipping eviction for key, TTL has changed")
+			}).Debug("Skipping eviction for key, TTL has changed")
 			skip = true
 		}
 
@@ -241,12 +257,15 @@ func (s *StorageAPI) processTTLElement() {
 			if tn > thisElem.(ttlIndexElement).TTL {
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf.rafty.storage-api",
-				}).Info("-> Removing key because expired")
+				}).Info("-> Removing key (", thisElem.(ttlIndexElement).Key,") because expired")
 				s.DeleteKey(thisElem.(ttlIndexElement).Key)
+
+				// It's not in the queue, aso it shouldn't be in the snapshot
+				applyDeletes[i] = thisElem.(ttlIndexElement)
 			} else {
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf.rafty.storage-api",
-				}).Info("Expiry not reached yet, adding back to stack")
+				}).Debug("Expiry not reached yet, adding back to stack")
 				s.addTTL(thisElem.(ttlIndexElement))
 			}
 		}
@@ -260,7 +279,7 @@ func (s *StorageAPI) processTTLElement() {
 		delete(s.queueSnapshot.queueSnapshot, elem.Key)
 		log.WithFields(logrus.Fields{
 			"prefix": "tcf.rafty.storage-api",
-		}).Debug("Updated queue snapshot")
+		}).Debug("Updated queue snapshot in-mem, deleted: ", elem.Key)
 		s.queueSnapshot.qmu.Unlock()
 	}
 
@@ -270,6 +289,9 @@ func (s *StorageAPI) processTTLElement() {
 
 func (s *StorageAPI) rebuildFromSnapshot(intoFifoQ *fifo.Queue) SnapshotStatus {
 	if s.store.IsLeader() == false {
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.rafty.storage-api",
+		}).Error("Can't rebuild: Not leader")
 		return StatusSnapshotNotLeader
 	}
 
@@ -291,11 +313,16 @@ func (s *StorageAPI) rebuildFromSnapshot(intoFifoQ *fifo.Queue) SnapshotStatus {
 		return StatusSnapshotNotFound
 	}
 
+	log.WithFields(logrus.Fields{
+		"prefix": "tcf.rafty.storage-api",
+	}).Info("Found: ", len(snapShotAsArray), " elements in snapshot.")
+
 	for _, elem := range snapShotAsArray {
 		log.WithFields(logrus.Fields{
 			"prefix": "tcf.rafty.storage-api",
-		}).Debug("ADDING SNAPSHOT: ", elem.Key)
+		}).Debug("ADDING SNAPSHOT ELEMENT: ", elem.Key)
 		intoFifoQ.Add(elem)
+		s.queueSnapshot.SetElement(elem.Key, elem)
 	}
 
 	return StatusSnapshotFound
@@ -303,27 +330,20 @@ func (s *StorageAPI) rebuildFromSnapshot(intoFifoQ *fifo.Queue) SnapshotStatus {
 
 func (s *StorageAPI) storeTTLSnapshot() {
 	if s.store.IsLeader() == false {
-		return
-	}
-
-	thisSnapShot := s.queueSnapshot.GetSnapshot()
-	asStr, encErr := json.Marshal(thisSnapShot)
-
-	if encErr != nil {
 		log.WithFields(logrus.Fields{
 			"prefix": "tcf.rafty.storage-api",
-		}).Error("Failed to decode TTL Snapshot")
+		}).Error("Failed to store snapshot, not leader.")
 		return
 	}
 
-	existingSnapShot, err := s.GetKey(TTLSNAPSHOT_KEY, false)
-	if err != nil {
-		existingSnapShot = NewKeyValueAPIObject()
-		existingSnapShot.Node.Key = TTLSNAPSHOT_KEY
-	}
+	asStr := s.queueSnapshot.String()
 
-	existingSnapShot.Node.Value = string(asStr)
-	s.SetKey(TTLSNAPSHOT_KEY, existingSnapShot.Node, true)
+	newSnapShotAPIObject := NewKeyValueAPIObject()
+	newSnapShotAPIObject.Node.Key = TTLSNAPSHOT_KEY
+
+	log.Debug("STORING TTL SNAPSHOT: ", asStr)
+	newSnapShotAPIObject.Node.Value = asStr
+	s.SetKey(TTLSNAPSHOT_KEY, newSnapShotAPIObject.Node, true)
 }
 
 func (s *StorageAPI) processTTLs() {
@@ -331,16 +351,23 @@ func (s *StorageAPI) processTTLs() {
 		if s.store.IsLeader() {
 			// No queue? try to rebuild or reset it
 			if s.queueSnapshot == nil {
-				log.Debug("Queue is empty, attempting to rebuild")
+				log.WithFields(logrus.Fields{
+					"prefix": "tcf.rafty.storage-api",
+				}).Info("TTL Queue is empty, attempting to rebuild")
 				s.queueSnapshot = newQueueSnapShot()
 				status := s.rebuildFromSnapshot(s.ttlIndex)
-				if status == StatusSnapshotFound {
-					log.Debug("No snapshot found, initialising a fresh queue")
+				if status == StatusSnapshotNotFound {
+					log.WithFields(logrus.Fields{
+						"prefix": "tcf.rafty.storage-api",
+					}).Info("No snapshot found, initialising a fresh queue")
 					s.storeTTLSnapshot()
 				}
 			}
 
 			// Process the next TTL item (but store snapshot in case we fail)
+			log.WithFields(logrus.Fields{
+				"prefix": "tcf.rafty.storage-api",
+			}).Debug("Processing TTLs")
 			s.processTTLElement()
 		} else {
 			// Not a leader, kill the queue we have
