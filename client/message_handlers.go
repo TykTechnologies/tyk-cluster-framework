@@ -1,4 +1,4 @@
-package tcf
+package client
 
 type MessageHandlerType string
 

@@ -1,4 +1,4 @@
-package tcf
+package client
 
 import (
 	logger "github.com/TykTechnologies/tykcommon-logger"
@@ -20,7 +20,7 @@ type Config struct {
 	}
 }
 
-// Global config
+// Global Client config
 var TCFConfig Config = Config{
 	PayloadType:PayloadDefaultPayload,
 	MessageHandlerType: MessageHandlerDefaultMessageHandler,

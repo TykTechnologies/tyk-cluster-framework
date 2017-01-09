@@ -2,6 +2,8 @@ package tcf
 
 import (
 	"github.com/TykTechnologies/logrus"
+	"github.com/TykTechnologies/tyk-cluster-framework/client"
+
 )
 
 type DummyServer struct {
@@ -16,7 +18,7 @@ func (s *DummyServer) Listen() error {
 	return nil
 }
 
-func (s *DummyServer) Publish(filter string, p Payload) error {
+func (s *DummyServer) Publish(filter string, p client.Payload) error {
 	payload := make(map[string]interface{})
 	decErr := p.DecodeMessage(&payload)
 	if decErr != nil {

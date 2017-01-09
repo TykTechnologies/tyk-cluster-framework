@@ -1,4 +1,4 @@
-package tcf
+package client
 
 import (
 	"github.com/garyburd/redigo/redis"
@@ -13,7 +13,7 @@ type RedisClient struct{
 	ClientHandler
 	URL string
 	pool *redis.Pool
-	encoding encoding
+	encoding Encoding
 }
 
 func (c *RedisClient) Init(config interface{}) error {
@@ -118,7 +118,7 @@ func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) error {
 	return nil
 }
 
-func (c *RedisClient) SetEncoding(enc encoding) error {
+func (c *RedisClient) SetEncoding(enc Encoding) error {
 	c.encoding = enc
 	return nil
 }

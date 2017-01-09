@@ -1,4 +1,4 @@
-package tcf
+package client
 
 import (
 	"encoding/json"
@@ -11,13 +11,13 @@ type Payload interface {
 	Verify() error
 	Encode() (error)
 	DecodeMessage(interface{}) (error)
-	SetEncoding(encoding)
+	SetEncoding(Encoding)
 }
 
 // DefaultPayload is the default payload that is used by TCF
 	type DefaultPayload struct {
 	Message interface{}
-	Encoding encoding
+	Encoding Encoding
 	Sig     string
 	Time    int64
 }
@@ -78,6 +78,6 @@ func (p *DefaultPayload) DecodeMessage(into interface{}) error {
 	return nil
 }
 
-func (p *DefaultPayload) SetEncoding(enc encoding) {
+func (p *DefaultPayload) SetEncoding(enc Encoding) {
 	p.Encoding = enc
 }

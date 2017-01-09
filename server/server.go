@@ -3,19 +3,25 @@ package tcf
 import (
 	"strings"
 	"errors"
+	"github.com/TykTechnologies/tyk-cluster-framework/client"
+	logger "github.com/TykTechnologies/tykcommon-logger"
+
+	"github.com/TykTechnologies/logrus"
 )
+
+var log *logrus.Logger = logger.GetLogger()
 
 // Server represents a server object that accepts connections for a queue service
 type Server interface {
 	Listen() error
-	Publish(string, Payload) error
+	Publish(string, client.Payload) error
 	EnableBroadcast(bool)
-	SetEncoding(encoding) error
+	SetEncoding(client.Encoding) error
 	Init(interface{}) error
 }
 
 // NewServer will generate a new server object based on the enum provided.
-func NewServer(connectionString string, baselineEncoding encoding) (Server, error) {
+func NewServer(connectionString string, baselineEncoding client.Encoding) (Server, error) {
 	parts := strings.Split(connectionString, "://")
 	if len(parts) < 2 {
 		return nil, errors.New("Connection string not in the correct format, must be transport://server:port")

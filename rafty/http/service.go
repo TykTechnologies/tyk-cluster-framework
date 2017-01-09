@@ -38,6 +38,8 @@ type Store interface {
 
 	// Leader returns th leader addr
 	Leader() string
+
+	SetPeers([]string) error
 }
 
 type TLSConfig struct {
@@ -69,6 +71,7 @@ func (s *Service) Start() error {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/join", s.handleJoin).Methods("POST")
+	r.HandleFunc("/setpeers", s.setPeers).Methods("POST")
 	r.HandleFunc("/remove", s.handleRemove).Methods("POST")
 	r.HandleFunc("/key/{name}", s.handleGetKey).Methods("GET")
 	r.HandleFunc("/key/{name}", s.handleUpdateKey).Methods("PUT")
@@ -123,6 +126,19 @@ func (s *Service) writeToClient(w http.ResponseWriter, r *http.Request, response
 	w.Write(thisResponse)
 }
 
+func (s *Service) setPeers(w http.ResponseWriter, r *http.Request) {
+	var m []string
+	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := s.store.SetPeers(m); err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
 
 func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
 	m := map[string]string{}
@@ -143,6 +159,7 @@ func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.store.Join(remoteAddr); err != nil {
+		log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

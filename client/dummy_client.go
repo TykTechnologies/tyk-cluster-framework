@@ -1,4 +1,4 @@
-package tcf
+package client
 
 import (
 	"errors"
@@ -55,6 +55,6 @@ func (c *DummyClient) Subscribe(filter string, handler PayloadHandler) error {
 	return nil
 }
 
-func (c *DummyClient) SetEncoding(enc encoding) error {
+func (c *DummyClient) SetEncoding(enc Encoding) error {
 	return nil
 }

@@ -1,11 +1,11 @@
-package tcf
+package client
 
 import (
 	"errors"
 	"encoding/json"
 )
 
-func Unmarshal(into Payload, data interface{}, enc encoding) error {
+func Unmarshal(into Payload, data interface{}, enc Encoding) error {
 	switch enc {
 	case JSON:
 		return unmarshalJSON(into, data)

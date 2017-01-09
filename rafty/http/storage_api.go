@@ -110,7 +110,10 @@ func (s *StorageAPI) SetKey(k string, value *rafty_objects.NodeValue, overwrite 
 
 	// Set expiry value
 	value.CalculateExpiry()
-	value.Created = time.Now().Unix()
+	if !overwrite {
+		value.Created = time.Now().Unix()
+	}
+	value.LastUpdated = time.Now().Unix()
 	toStore, encErr := value.EncodeForStorage()
 
 	if encErr != nil {

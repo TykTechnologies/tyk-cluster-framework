@@ -11,18 +11,20 @@ const (
 )
 
 type Config struct {
-	HttpServerAddr string
-	RaftServerAddress string
-	JoinTimeout int
-	RaftDir string
-	TLSConfig *httpd.TLSConfig
+	HttpServerAddr        string
+	RaftServerAddress     string
+	JoinTimeout           int
+	RaftDir               string
+	TLSConfig             *httpd.TLSConfig
+	RunInSingleServerMode bool
+	ResetPeersOnLoad bool
 }
 
 var tcfRaftyConfig Config = Config{
-	HttpServerAddr: DefaultHTTPAddr,
+	HttpServerAddr:    DefaultHTTPAddr,
 	RaftServerAddress: DefaultRaftAddr,
-	JoinTimeout: 60,
-	RaftDir: "raft",
+	JoinTimeout:       60,
+	RaftDir:           "raft",
 }
 
 func init() {}

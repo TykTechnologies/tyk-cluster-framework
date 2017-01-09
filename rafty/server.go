@@ -14,14 +14,17 @@ import (
 	"github.com/TykTechnologies/logrus"
 	"strings"
 	"strconv"
+	"time"
+
+	"github.com/TykTechnologies/tyk-cluster-framework/client"
+	"path/filepath"
 )
 
 var log = logger.GetLogger()
 var logPrefix string = "tcf.rafty"
 
-var JOINED_STATE bool
 
-func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signal) {
+func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signal, broadcastWith client.Client) {
 	log.Info("Log level: ", os.Getenv("TYK_LOGLEVEL"))
 	if raftyConfig == nil {
 		log.WithFields(logrus.Fields{
@@ -44,8 +47,46 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 	s.RaftDir = raftyConfig.RaftDir
 	s.RaftBind = raftyConfig.RaftServerAddress
 
-	// We always allow single node mode
-	if err := s.Open(true); err != nil {
+	var masterConfigChan = make(chan Config)
+	if broadcastWith != nil {
+		log.WithFields(logrus.Fields{
+			"prefix": logPrefix,
+		}).Info("Starting master boradcaster")
+		go startBroadCast(broadcastWith, s, raftyConfig)
+		startListeningForMasterChange(broadcastWith, masterConfigChan)
+
+		if raftyConfig.RunInSingleServerMode == false {
+			select {
+			case masterConfig := <- masterConfigChan:
+				raftyConfig.RunInSingleServerMode = false
+				JoinAddress = masterConfig.HttpServerAddr
+				log.WithFields(logrus.Fields{
+					"prefix": logPrefix,
+				}).Info("Got leader. Joining: ", JoinAddress)
+				break
+
+			case <-time.After(time.Second * 5):
+				// Timeout reached, lets re-bootstrap
+				raftyConfig.RunInSingleServerMode = true
+
+				if raftyConfig.ResetPeersOnLoad {
+					thisPath := filepath.Join(s.RaftDir, "peers.json")
+					store.ResetPeersJSON(thisPath, raftyConfig.RaftServerAddress)
+				}
+
+				log.WithFields(logrus.Fields{
+					"prefix": logPrefix,
+				}).Info("No leader found, starting and waiting for set peers")
+			}
+		}
+
+		go masterListener(masterConfigChan, raftyConfig)
+	}
+
+	// Only allow bootstrap if no join is specified
+	log.Info("Running in single server mode: ", raftyConfig.RunInSingleServerMode)
+
+	if err := s.Open(raftyConfig.RunInSingleServerMode); err != nil {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
 		}).Fatal("Failed to open store: ", err)
@@ -60,18 +101,16 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 
 	// If join was specified, make the join request.
 	if JoinAddress != "" {
+		log.WithFields(logrus.Fields{
+			"prefix": logPrefix,
+		}).Info("Sending join request")
 		if err := join(JoinAddress, raftyConfig.RaftServerAddress, raftyConfig.TLSConfig != nil); err != nil {
 			log.WithFields(logrus.Fields{
 				"prefix": logPrefix,
 			}).Fatalf("Failed to join node at %s: %v", JoinAddress, err)
 		}
 
-		JOINED_STATE = true
 	}
-
-	log.WithFields(logrus.Fields{
-		"prefix": logPrefix,
-	}).Info("Raft server started successfully")
 
 	signal.Notify(killChan, os.Interrupt)
 	<-killChan
@@ -80,7 +119,9 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 	}).Info("Raft server exiting")
 
 	if !s.IsLeader() {
-		log.Info("LEAVING!")
+		log.WithFields(logrus.Fields{
+			"prefix": logPrefix,
+		}).Info("Leaving cluster")
 		leaveErr := leave(s.Leader(), raftyConfig.RaftServerAddress, raftyConfig.TLSConfig != nil)
 		if leaveErr != nil {
 			log.WithFields(logrus.Fields{
@@ -90,7 +131,71 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 		return
 	}
 
+	log.WithFields(logrus.Fields{
+		"prefix": logPrefix,
+	}).Info("Leader leaving cluster")
 	s.RemovePeer(raftyConfig.RaftServerAddress)
+}
+
+func masterListener(inBoundChan chan Config, raftyConfig *Config) {
+	lastWrite := time.Now().Unix()
+	for {
+		masterConfig := <- inBoundChan
+		if masterConfig.HttpServerAddr != raftyConfig.HttpServerAddr {
+			// Stop flooding the log
+			if (time.Now().Unix() - lastWrite) > int64(10) {
+				log.WithFields(logrus.Fields{
+					"prefix": logPrefix,
+				}).Info("Leader is: ", masterConfig.HttpServerAddr)
+				lastWrite = time.Now().Unix()
+			}
+
+		}
+
+	}
+
+}
+
+func startBroadCast(msgClient client.Client, s *store.Store, raftyConfig *Config) {
+	for {
+		if s.IsLeader() {
+			thisPayload, pErr := client.NewPayload(raftyConfig)
+
+			if pErr != nil {
+				log.WithFields(logrus.Fields{
+					"prefix": logPrefix,
+				}).Fatal(pErr)
+			}
+
+			log.WithFields(logrus.Fields{
+				"prefix": "tcf-exp",
+			}).Debug("Sending Broadcast: %v", raftyConfig.HttpServerAddr)
+			msgClient.Publish("tcf.cluster.distributed_store.leader", thisPayload)
+		}
+		time.Sleep(time.Second * 1)
+	}
+}
+
+func startListeningForMasterChange(msgClient client.Client, configChan chan Config) {
+	msgClient.Subscribe("tcf.cluster.distributed_store.leader", func(payload client.Payload) {
+		var d Config
+		decErr := payload.DecodeMessage(&d)
+		var skip bool
+		if decErr != nil {
+			log.WithFields(logrus.Fields{
+				"prefix": logPrefix,
+			}).Error(decErr)
+			skip = true
+		}
+
+		if !skip {
+			log.WithFields(logrus.Fields{
+				"prefix": "tcf-exp",
+			}).Debugf("RECEIVED: %v", d)
+
+			configChan <- d
+		}
+	})
 }
 
 func join(joinAddr, raftAddr string, secure bool) error {

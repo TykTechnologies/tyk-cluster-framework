@@ -15,9 +15,8 @@ type NodeValue struct {
 }
 
 func (n *NodeValue) CalculateExpiry() {
-	if n.TTL > 0 {
-		n.Expiration = time.Now().Add(time.Duration(n.TTL) * time.Second)
-	}
+	n.Expiration = time.Now().Add(time.Duration(n.TTL) * time.Second)
+
 }
 
 func (n *NodeValue) EncodeForStorage() ([]byte, error) {

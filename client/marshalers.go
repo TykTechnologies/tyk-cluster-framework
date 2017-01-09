@@ -1,11 +1,11 @@
-package tcf
+package client
 
 import (
 	"errors"
 	"encoding/json"
 )
 
-func Marshal(from Payload, enc encoding) (interface{}, error) {
+func Marshal(from Payload, enc Encoding) (interface{}, error) {
 	switch enc {
 	case JSON:
 		return marshalJSON(from)

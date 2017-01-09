@@ -59,6 +59,7 @@ func New() *Store {
 	}
 }
 
+
 // Open opens the store. If enableSingle is set, and there are no existing peers,
 // then this node becomes the first node, and therefore leader, of the cluster.
 func (s *Store) Open(enableSingle bool) error {
@@ -69,13 +70,14 @@ func (s *Store) Open(enableSingle bool) error {
 	config.ShutdownOnRemove = false
 
 	// Check for any existing peers.
-	peers, err := readPeersJSON(filepath.Join(s.RaftDir, "peers.json"))
+	peers, err := ReadPeersJSON(filepath.Join(s.RaftDir, "peers.json"))
 	if err != nil {
 		return err
 	}
 
 	// Allow the node to entry single-mode, potentially electing itself, if
 	// explicitly enabled and there is only 1 node in the cluster already.
+	//if enableSingle && len(peers) <= 1 {
 	if enableSingle && len(peers) <= 1 {
 		s.logger.WithFields(logrus.Fields{
 			"prefix": "tcf.rafty.store",
@@ -185,6 +187,21 @@ func (s *Store) Join(addr string) error {
 	return nil
 }
 
+func (s *Store) SetPeers(addr []string) error {
+	s.logger.WithFields(logrus.Fields{
+		"prefix": "tcf.rafty.store",
+	}).Info("received set peer request", addr)
+
+	f := s.raft.SetPeers(addr)
+	if f.Error() != nil {
+		return f.Error()
+	}
+	s.logger.WithFields(logrus.Fields{
+		"prefix": "tcf.rafty.store",
+	}).Infof("nodes set succesfully")
+	return nil
+}
+
 func (s *Store) RemovePeer(addr string) error {
 	if s.raft.State() != raft.Leader {
 		return fmt.Errorf("not leader")
@@ -195,6 +212,9 @@ func (s *Store) RemovePeer(addr string) error {
 }
 
 func (s *Store) IsLeader() bool {
+	if s.raft == nil {
+		return false
+	}
 	if s.raft.State() == raft.Leader {
 		return true
 	}
@@ -295,7 +315,7 @@ func (f *fsmSnapshot) Persist(sink raft.SnapshotSink) error {
 
 func (f *fsmSnapshot) Release() {}
 
-func readPeersJSON(path string) ([]string, error) {
+func ReadPeersJSON(path string) ([]string, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
@@ -312,4 +332,22 @@ func readPeersJSON(path string) ([]string, error) {
 	}
 
 	return peers, nil
+}
+
+func ResetPeersJSON(path string, hostname string) {
+	peers, err := ReadPeersJSON(path)
+	if err != nil {
+		log.Fatal("Could not reset peers: ", err)
+	}
+	newPeers := []string{hostname}
+	if len(peers) > 1 {
+		b, encErr := json.Marshal(newPeers)
+		if encErr != nil {
+			log.Fatal("Could not marshal peers: ", encErr)
+		}
+		wErr := ioutil.WriteFile(path, b, 0644)
+		if wErr != nil {
+			log.Fatal("Could not write peers: ", wErr)
+		}
+	}
 }

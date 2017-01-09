@@ -1,4 +1,4 @@
-package tcf
+package client
 
 import (
 	"strings"
@@ -12,13 +12,13 @@ type Client interface {
 	Connect() error
 	Publish(string, Payload) error
 	Subscribe(string, PayloadHandler) error
-	SetEncoding(encoding) error
+	SetEncoding(Encoding) error
 	Init(interface{}) error
 }
 
 // NewClient will create a new client object based on the enum provided, the object will be pre-configured
 // with the defaults needed and any custom configurations passed in for the type
-func NewClient(connectionString string, baselineEncoding encoding) (Client, error) {
+func NewClient(connectionString string, baselineEncoding Encoding) (Client, error) {
 	parts := strings.Split(connectionString, "://")
 	if len(parts) < 2 {
 		return nil, errors.New("Connection string not in the correct format, must be transport://server:port")

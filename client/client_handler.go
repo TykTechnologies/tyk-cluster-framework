@@ -1,4 +1,4 @@
-package tcf
+package client
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ type ClientHandler struct {}
 
 // HandleRawMessage will take the raw data, payload handler and encoding, decode the value,
 // pass it to the handler and return an error if there was a problem
-func (c ClientHandler) HandleRawMessage(rawMessage interface{}, payloadHandler PayloadHandler, enc encoding) error {
+func (c ClientHandler) HandleRawMessage(rawMessage interface{}, payloadHandler PayloadHandler, enc Encoding) error {
 	// First, decode the message based on it's type and encoding
 	msgHandler := NewMessageHandler()
 	asPayload, err := msgHandler.HandleRawMessage(rawMessage, enc)
@@ -29,7 +29,7 @@ func (c ClientHandler) HandleRawMessage(rawMessage interface{}, payloadHandler P
 }
 
 // WrappedHandler returns a payload handler that includes the pre-processing step
-func (c ClientHandler) WrappedHandler(rawMessage interface{}, payloadHandler PayloadHandler, enc encoding) PayloadHandler {
+func (c ClientHandler) WrappedHandler(rawMessage interface{}, payloadHandler PayloadHandler, enc Encoding) PayloadHandler {
 
 	return func(payload Payload) {
 		// First, decode the message based on it's type and encoding
