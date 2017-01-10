@@ -141,6 +141,11 @@ func (s *Service) setPeers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
+	if !s.store.IsLeader() {
+		s.forwardRequest(w, r)
+		return
+	}
+
 	m := map[string]string{}
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -166,6 +171,11 @@ func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleRemove(w http.ResponseWriter, r *http.Request) {
+	if !s.store.IsLeader() {
+		s.forwardRequest(w, r)
+		return
+	}
+
 	log.Info("REMOVING PEER")
 	m := map[string]string{}
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
@@ -215,6 +225,11 @@ func (s *Service) handleGetKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleCreateKey(w http.ResponseWriter, r *http.Request) {
+	if !s.store.IsLeader() {
+		s.forwardRequest(w, r)
+		return
+	}
+
 	vars := mux.Vars(r)
 	k := vars["name"]
 	if k == "" {
@@ -260,6 +275,11 @@ func (s *Service) handleCreateKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleUpdateKey(w http.ResponseWriter, r *http.Request) {
+	if !s.store.IsLeader() {
+		s.forwardRequest(w, r)
+		return
+	}
+
 	vars := mux.Vars(r)
 	k := vars["name"]
 	if k == "" {
@@ -320,6 +340,11 @@ func (s *Service) handleUpdateKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
+	if !s.store.IsLeader() {
+		s.forwardRequest(w, r)
+		return
+	}
+
 	vars := mux.Vars(r)
 	k := vars["name"]
 	if k == "" {

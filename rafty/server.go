@@ -12,8 +12,6 @@ import (
 	"github.com/TykTechnologies/tyk-cluster-framework/rafty/store"
 	logger "github.com/TykTechnologies/tykcommon-logger"
 	"github.com/TykTechnologies/logrus"
-	"strings"
-	"strconv"
 	"time"
 
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
@@ -231,20 +229,7 @@ func leave(leaderAddr, raftAddr string, secure bool) error {
 		trans = "https"
 	}
 
-	urlParts := strings.Split(leaderAddr, ":")
-	var host, portStr string
-	if len(urlParts) > 1 {
-		host = urlParts[0]
-		portStr = urlParts[1]
-	} else {
-		host = leaderAddr
-	}
-
-	asInt, intErr := strconv.Atoi(portStr)
-	if intErr != nil {
-		log.Fatal(intErr, "was: ", portStr)
-	}
-	apiAddr := host + ":" + strconv.Itoa(asInt - 100)
+	apiAddr := store.GetHttpAPIFromRaftURL(leaderAddr)
 
 	resp, err := http.Post(
 		fmt.Sprintf(trans+"://%s/remove", apiAddr),
@@ -257,3 +242,5 @@ func leave(leaderAddr, raftAddr string, secure bool) error {
 	defer resp.Body.Close()
 	return nil
 }
+
+

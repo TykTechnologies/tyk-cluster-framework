@@ -23,6 +23,8 @@ import (
 	"github.com/hashicorp/raft-boltdb"
 	"github.com/TykTechnologies/logrus"
 	"gopkg.in/vmihailenco/msgpack.v2"
+	"strings"
+	"strconv"
 )
 
 var log = logger.GetLogger()
@@ -350,4 +352,23 @@ func ResetPeersJSON(path string, hostname string) {
 			log.Fatal("Could not write peers: ", wErr)
 		}
 	}
+}
+
+func GetHttpAPIFromRaftURL(leaderAddr string) string {
+	urlParts := strings.Split(leaderAddr, ":")
+	var host, portStr string
+	if len(urlParts) > 1 {
+		host = urlParts[0]
+		portStr = urlParts[1]
+	} else {
+		host = leaderAddr
+	}
+
+	asInt, intErr := strconv.Atoi(portStr)
+	if intErr != nil {
+		log.Fatal(intErr, "was: ", portStr)
+	}
+	apiAddr := host + ":" + strconv.Itoa(asInt - 100)
+
+	return apiAddr
 }

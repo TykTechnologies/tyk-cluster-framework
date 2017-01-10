@@ -1,4 +1,4 @@
-package tcf
+package server
 
 import (
 	"github.com/TykTechnologies/logrus"
