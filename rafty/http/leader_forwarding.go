@@ -5,6 +5,15 @@ import (
 	"github.com/TykTechnologies/tyk-cluster-framework/rafty/store"
 	"net/http/httputil"
 	"net/url"
+	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/rafty/objects"
+)
+
+type CallType string
+
+const (
+	CallGetKey CallType = "get"
+	CallUpdateKey CallType = "update"
+	CallDeleteKey CallType = "delete"
 )
 
 func (s *Service) forwardRequest(w http.ResponseWriter, r *http.Request) {
@@ -27,4 +36,3 @@ func (s *Service) forwardRequest(w http.ResponseWriter, r *http.Request) {
 	thisProxy := httputil.NewSingleHostReverseProxy(asURL)
 	thisProxy.ServeHTTP(w, r)
 }
-
