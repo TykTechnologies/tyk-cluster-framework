@@ -5,7 +5,6 @@ import (
 	"github.com/TykTechnologies/tyk-cluster-framework/rafty/store"
 	"net/http/httputil"
 	"net/url"
-	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/rafty/objects"
 )
 
 type CallType string

@@ -3,6 +3,7 @@ package httpd
 import (
 	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/rafty/objects"
 	"gopkg.in/vmihailenco/msgpack.v2"
+	"fmt"
 )
 
 type ActionType string
@@ -57,6 +58,10 @@ type ErrorResponse struct {
 	Cause    string `json:"cause"`
 	Error    ErrorCode `json:"error"`
 	MetaData interface{} `json:"metaData,omitempty"`
+}
+
+func (e *ErrorResponse) String() string {
+	return fmt.Sprintf("API error from: %s reason: %s (%v) metadata: %v", e.Cause, e.Error.Reason, e.Error.Code, e.MetaData)
 }
 
 func NewErrorResponse(cause string, metadata interface{}) *ErrorResponse {
