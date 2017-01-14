@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strconv"
 	"github.com/TykTechnologies/logrus"
+	"net/url"
+	"fmt"
 )
 
 // Client is a queue client managed by TCF
@@ -53,6 +55,46 @@ func NewClient(connectionString string, baselineEncoding Encoding) (Client, erro
 		}).Info("Using Redis back-end")
 		c := &RedisClient{
 			URL: connectionString,
+		}
+		c.SetEncoding(baselineEncoding)
+		c.Init(nil)
+		return c, nil
+	case "beacon":
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf",
+		}).Info("Using Beacon back-end")
+
+		URL, err := url.Parse(connectionString)
+		if err != nil {
+			return nil, err
+		}
+
+		parts := strings.Split(URL.Host, ":")
+		if len(parts) < 2 {
+			return nil, errors.New("No port specified")
+		}
+
+		interval := URL.Query().Get("interval")
+		if interval == "" {
+			interval = "10"
+		}
+
+		asInt, convErr := strconv.Atoi(interval)
+		if convErr != nil {
+			return nil, convErr
+		}
+
+		portAsInt, portConvErr := strconv.Atoi(parts[1])
+		if portConvErr != nil {
+			return nil, portConvErr
+		}
+
+		fmt.Printf("Port is: %v\n", parts[1])
+		fmt.Printf("Interval is: %v\n", asInt)
+
+		c := &BeaconClient{
+			Port: portAsInt,
+			Interval: asInt,
 		}
 		c.SetEncoding(baselineEncoding)
 		c.Init(nil)
