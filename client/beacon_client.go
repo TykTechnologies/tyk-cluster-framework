@@ -195,7 +195,7 @@ func (b *BeaconClient) Init(config interface{}) error {
 	if runtime.GOOS == "windows" {
 		log.Fatal("Beacon is not compatible with windows OS")
 	}
-	
+
 	b.beacon = beacon.New()
 	b.beacon.SetPort(b.Port).SetInterval(time.Duration(b.Interval) * time.Second)
 

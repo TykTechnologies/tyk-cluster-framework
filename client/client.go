@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"github.com/TykTechnologies/logrus"
 	"net/url"
-	"fmt"
 )
 
 // Client is a queue client managed by TCF
@@ -89,8 +88,12 @@ func NewClient(connectionString string, baselineEncoding Encoding) (Client, erro
 			return nil, portConvErr
 		}
 
-		fmt.Printf("Port is: %v\n", parts[1])
-		fmt.Printf("Interval is: %v\n", asInt)
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf",
+		}).Debugf("Port is: %v\n", parts[1])
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf",
+		}).Debugf("Interval is: %v\n", asInt)
 
 		c := &BeaconClient{
 			Port: portAsInt,
