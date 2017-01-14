@@ -3,7 +3,6 @@ package server
 import (
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
-
 )
 
 type DummyServer struct {

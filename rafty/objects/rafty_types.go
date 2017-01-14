@@ -1,17 +1,17 @@
 package objects
 
 import (
-	"time"
 	"gopkg.in/vmihailenco/msgpack.v2"
+	"time"
 )
 
 type NodeValue struct {
 	Expiration  time.Time `json:"expiration,omitempty"`
-	TTL         int `json:"ttl,omitempty"`
-	Key         string `json:"key"`
-	Value       string `json:"value"`
-	Created     int64 `json:"created"`
-	LastUpdated int64 `json:"lastUpdated"`
+	TTL         int       `json:"ttl,omitempty"`
+	Key         string    `json:"key"`
+	Value       string    `json:"value"`
+	Created     int64     `json:"created"`
+	LastUpdated int64     `json:"lastUpdated"`
 }
 
 func (n *NodeValue) CalculateExpiry() {

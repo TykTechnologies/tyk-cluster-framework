@@ -1,11 +1,11 @@
 package client
 
 import (
-	"strings"
 	"errors"
-	"strconv"
 	"github.com/TykTechnologies/logrus"
 	"net/url"
+	"strconv"
+	"strings"
 )
 
 // Client is a queue client managed by TCF
@@ -43,7 +43,7 @@ func NewClient(connectionString string, baselineEncoding Encoding) (Client, erro
 
 		c := &DummyClient{
 			Hostname: connParts[0],
-			Port: portAsInt,
+			Port:     portAsInt,
 		}
 		c.SetEncoding(baselineEncoding)
 		c.Init(nil)
@@ -96,7 +96,7 @@ func NewClient(connectionString string, baselineEncoding Encoding) (Client, erro
 		}).Debugf("Interval is: %v\n", asInt)
 
 		c := &BeaconClient{
-			Port: portAsInt,
+			Port:     portAsInt,
 			Interval: asInt,
 		}
 		c.SetEncoding(baselineEncoding)

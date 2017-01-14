@@ -1,8 +1,8 @@
 package client
 
 import (
-	"errors"
 	"encoding/json"
+	"errors"
 )
 
 func Unmarshal(into Payload, data interface{}, enc Encoding) error {

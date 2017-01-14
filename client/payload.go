@@ -9,17 +9,17 @@ import (
 // A payload is a type of object that can be used to send around a queue managed by TCF
 type Payload interface {
 	Verify() error
-	Encode() (error)
-	DecodeMessage(interface{}) (error)
+	Encode() error
+	DecodeMessage(interface{}) error
 	SetEncoding(Encoding)
 }
 
 // DefaultPayload is the default payload that is used by TCF
-	type DefaultPayload struct {
-	Message interface{}
+type DefaultPayload struct {
+	Message  interface{}
 	Encoding Encoding
-	Sig     string
-	Time    int64
+	Sig      string
+	Time     int64
 }
 
 // Verify will check the signature if enabled
@@ -32,7 +32,7 @@ func (p *DefaultPayload) Verify() error {
 }
 
 // Encode will convert the payload into the baseline encoding type to send over the wire
-func (p *DefaultPayload) Encode() (error) {
+func (p *DefaultPayload) Encode() error {
 	switch p.Encoding {
 	case JSON:
 		j, err := json.Marshal(p.Message)

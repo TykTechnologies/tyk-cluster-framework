@@ -7,23 +7,22 @@ import (
 var log = logger.GetLogger()
 
 type Config struct {
-	PayloadType PayloadType
-	MessageHandlerType MessageHandlerType
+	PayloadType                    PayloadType
+	MessageHandlerType             MessageHandlerType
 	SetEncodingForPayloadsGlobally bool
-	Handlers struct {
+	Handlers                       struct {
 		Redis struct {
-			MaxIdle int
-			MaxActive int
+			MaxIdle     int
+			MaxActive   int
 			IdleTimeout int
-
 		}
 	}
 }
 
 // Global Client config
 var TCFConfig Config = Config{
-	PayloadType:PayloadDefaultPayload,
-	MessageHandlerType: MessageHandlerDefaultMessageHandler,
+	PayloadType:                    PayloadDefaultPayload,
+	MessageHandlerType:             MessageHandlerDefaultMessageHandler,
 	SetEncodingForPayloadsGlobally: true,
 }
 

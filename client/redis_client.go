@@ -1,18 +1,18 @@
 package client
 
 import (
-	"github.com/garyburd/redigo/redis"
 	"errors"
-	"time"
-	"strings"
-	"net/url"
 	"github.com/TykTechnologies/logrus"
+	"github.com/garyburd/redigo/redis"
+	"net/url"
+	"strings"
+	"time"
 )
 
-type RedisClient struct{
+type RedisClient struct {
 	ClientHandler
-	URL string
-	pool *redis.Pool
+	URL      string
+	pool     *redis.Pool
 	encoding Encoding
 }
 

@@ -7,7 +7,7 @@ import (
 
 // ClientHandler provides helper functions and wrappers to decode a raw message into a payload object
 // to pass onto a payload handler
-type ClientHandler struct {}
+type ClientHandler struct{}
 
 // HandleRawMessage will take the raw data, payload handler and encoding, decode the value,
 // pass it to the handler and return an error if there was a problem

@@ -1,9 +1,9 @@
 package httpd
 
 import (
+	"fmt"
 	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/rafty/objects"
 	"gopkg.in/vmihailenco/msgpack.v2"
-	"fmt"
 )
 
 type ActionType string
@@ -16,7 +16,7 @@ const (
 )
 
 type KeyValueAPIObject struct {
-	Action ActionType `json:"action"`
+	Action ActionType               `json:"action"`
 	Node   *rafty_objects.NodeValue `json:"node"`
 }
 
@@ -44,7 +44,7 @@ func NewKeyValueAPIObjectFromMsgPack(payload []byte) (*KeyValueAPIObject, error)
 }
 
 type ErrorCode struct {
-	Code   int `json:"code"`
+	Code   int    `json:"code"`
 	Reason string `json:"reason"`
 }
 
@@ -55,8 +55,8 @@ var (
 )
 
 type ErrorResponse struct {
-	Cause    string `json:"cause"`
-	Error    ErrorCode `json:"error"`
+	Cause    string      `json:"cause"`
+	Error    ErrorCode   `json:"error"`
 	MetaData interface{} `json:"metaData,omitempty"`
 }
 

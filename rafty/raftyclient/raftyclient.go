@@ -1,17 +1,17 @@
 package raftyclient
 
 import (
-	"net/http"
-	"strings"
-	"io/ioutil"
 	"encoding/json"
 	"github.com/TykTechnologies/tyk-cluster-framework/rafty/http"
+	"io/ioutil"
+	"net/http"
+	"strings"
 
-	"time"
-	"errors"
-	"net/url"
 	"bytes"
+	"errors"
 	"fmt"
+	"net/url"
+	"time"
 )
 
 type APIClient struct {
@@ -54,7 +54,7 @@ func (c *APIClient) GetKey(key string) (*httpd.KeyValueAPIObject, error) {
 		return nil, rErr
 	}
 
-	client := &http.Client {
+	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
 
@@ -90,7 +90,7 @@ func (c *APIClient) DeleteKey(key string) (*httpd.KeyValueAPIObject, error) {
 		return nil, rErr
 	}
 
-	client := &http.Client {
+	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
 
@@ -142,7 +142,7 @@ func (c *APIClient) CreateKey(key string, value interface{}, ttl string) (*httpd
 		return nil, rErr
 	}
 
-	client := &http.Client {
+	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
 
@@ -193,7 +193,7 @@ func (c *APIClient) UpdateKey(key string, value interface{}, ttl string) (*httpd
 		return nil, rErr
 	}
 
-	client := &http.Client {
+	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
 

@@ -17,7 +17,7 @@ type Config struct {
 	RaftDir               string
 	TLSConfig             *httpd.TLSConfig
 	RunInSingleServerMode bool
-	ResetPeersOnLoad bool
+	ResetPeersOnLoad      bool
 }
 
 var tcfRaftyConfig Config = Config{

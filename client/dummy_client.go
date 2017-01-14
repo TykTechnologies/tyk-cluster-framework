@@ -5,10 +5,10 @@ import (
 	"github.com/TykTechnologies/logrus"
 )
 
-type DummyClient struct{
+type DummyClient struct {
 	ClientHandler
 	Hostname string
-	Port int
+	Port     int
 }
 
 func (c *DummyClient) Init(config interface{}) error {
@@ -22,7 +22,7 @@ func (c *DummyClient) Connect() error {
 
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.dummyclient",
-	}).Info("Connected to: ", c.Hostname, ":",c.Port)
+	}).Info("Connected to: ", c.Hostname, ":", c.Port)
 	return nil
 }
 
@@ -48,10 +48,10 @@ func (c *DummyClient) Subscribe(filter string, handler PayloadHandler) error {
 
 	/*
 
-	A real handler will need to:
-		- Call HandleRawMessage() with the data value of the inbound payload to convert it
-		- This will pass that value to the actual payload handler in order to generalise the inbound pattern
-	 */
+		A real handler will need to:
+			- Call HandleRawMessage() with the data value of the inbound payload to convert it
+			- This will pass that value to the actual payload handler in order to generalise the inbound pattern
+	*/
 	return nil
 }
 

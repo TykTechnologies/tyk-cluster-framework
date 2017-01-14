@@ -4,11 +4,11 @@ import (
 	"errors"
 )
 
-type MessageHandler interface{
+type MessageHandler interface {
 	HandleRawMessage(interface{}, Encoding) (Payload, error)
 }
 
-type DefaultMessageHandler struct {}
+type DefaultMessageHandler struct{}
 
 func (m *DefaultMessageHandler) HandleRawMessage(rawMessage interface{}, enc Encoding) (Payload, error) {
 	switch rawMessage.(type) {
@@ -28,4 +28,3 @@ func (m *DefaultMessageHandler) handleByteArrayMessage(rawMessage []byte, enc En
 	decodeFailure := Unmarshal(thisPayload, rawMessage, enc)
 	return thisPayload, decodeFailure
 }
-

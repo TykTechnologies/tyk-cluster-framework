@@ -1,8 +1,8 @@
 package client
 
 import (
-	"errors"
 	"encoding/json"
+	"errors"
 )
 
 func Marshal(from Payload, enc Encoding) (interface{}, error) {

@@ -18,13 +18,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/TykTechnologies/logrus"
 	logger "github.com/TykTechnologies/tykcommon-logger"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
-	"github.com/TykTechnologies/logrus"
 	"gopkg.in/vmihailenco/msgpack.v2"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 var log = logger.GetLogger()
@@ -61,13 +61,12 @@ func New() *Store {
 	}
 }
 
-
 // Open opens the store. If enableSingle is set, and there are no existing peers,
 // then this node becomes the first node, and therefore leader, of the cluster.
 func (s *Store) Open(enableSingle bool) error {
 	// Setup Raft configuration with our custom writer to convert to logrus
 	config := raft.DefaultConfig()
-	convertedLogger := &ConvertedLogrusLogger{Prefix:"tcf.rafty.raft", LogInstance: log}
+	convertedLogger := &ConvertedLogrusLogger{Prefix: "tcf.rafty.raft", LogInstance: log}
 	config.LogOutput = convertedLogger
 	config.ShutdownOnRemove = false
 
@@ -368,7 +367,7 @@ func GetHttpAPIFromRaftURL(leaderAddr string) string {
 	if intErr != nil {
 		log.Fatal(intErr, "was: ", portStr)
 	}
-	apiAddr := host + ":" + strconv.Itoa(asInt - 100)
+	apiAddr := host + ":" + strconv.Itoa(asInt-100)
 
 	return apiAddr
 }

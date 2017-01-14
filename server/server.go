@@ -1,10 +1,10 @@
 package server
 
 import (
-	"strings"
 	"errors"
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
 	logger "github.com/TykTechnologies/tykcommon-logger"
+	"strings"
 
 	"github.com/TykTechnologies/logrus"
 )

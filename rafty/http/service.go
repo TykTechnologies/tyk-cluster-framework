@@ -4,14 +4,14 @@ package httpd
 
 import (
 	"encoding/json"
-	"net/http"
-	logger "github.com/TykTechnologies/tykcommon-logger"
-	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/rafty/objects"
+	"fmt"
 	"github.com/TykTechnologies/logrus"
+	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/rafty/objects"
+	logger "github.com/TykTechnologies/tykcommon-logger"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"gopkg.in/vmihailenco/msgpack.v2"
-	"fmt"
+	"net/http"
 )
 
 var log = logger.GetLogger()
@@ -43,26 +43,26 @@ type Store interface {
 }
 
 type TLSConfig struct {
-	KeyFile string
+	KeyFile  string
 	CertFile string
 }
 
 // Service provides HTTP service.
 type Service struct {
-	addr string
+	addr      string
 	tlsConfig *TLSConfig
 
-	store Store
+	store      Store
 	StorageAPI *StorageAPI
 }
 
 // New returns an uninitialized HTTP service.
 func New(addr string, store Store, tlsConfig *TLSConfig) *Service {
 	return &Service{
-		addr:  addr,
-		store: store,
+		addr:       addr,
+		store:      store,
 		StorageAPI: NewStorageAPI(store),
-		tlsConfig: tlsConfig,
+		tlsConfig:  tlsConfig,
 	}
 }
 
@@ -91,7 +91,6 @@ func (s *Service) Start() error {
 			// Exit out of server loop on fail
 			return
 		}
-
 
 		// By default, run HTTP
 		err_http := http.ListenAndServe(fmt.Sprintf("%s", s.addr), r)
@@ -193,7 +192,6 @@ func (s *Service) handleRemove(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
 
 	if err := s.store.RemovePeer(remoteAddr); err != nil {
 		log.Error("FAILED TO REMOVE PEER: ", err)
@@ -298,7 +296,7 @@ func (s *Service) handleUpdateKey(w http.ResponseWriter, r *http.Request) {
 	var nodeValue rafty_objects.NodeValue
 	mDecErr := msgpack.Unmarshal(v, &nodeValue)
 	if mDecErr != nil {
-		s.writeToClient(w, r, NewErrorResponse("/"+k, "Key marshalling failed: " + mDecErr.Error()), http.StatusInternalServerError)
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Key marshalling failed: "+mDecErr.Error()), http.StatusInternalServerError)
 		return
 	}
 
@@ -358,7 +356,7 @@ func (s *Service) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	delResp := NewKeyValueAPIObjectWithAction(ActionKeyDeleted)
-	delResp.Node.Key = "/"+k
+	delResp.Node.Key = "/" + k
 
 	s.writeToClient(w, r, delResp, http.StatusOK)
 }

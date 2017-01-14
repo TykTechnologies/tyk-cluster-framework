@@ -1,13 +1,13 @@
 package tcf
 
 import (
-	"github.com/TykTechnologies/tyk-cluster-framework/rafty"
-	"github.com/TykTechnologies/tyk-cluster-framework/client"
-	"os"
-	"github.com/nu7hatch/gouuid"
-	"github.com/TykTechnologies/logrus"
 	"fmt"
+	"github.com/TykTechnologies/logrus"
+	"github.com/TykTechnologies/tyk-cluster-framework/client"
+	"github.com/TykTechnologies/tyk-cluster-framework/rafty"
 	logger "github.com/TykTechnologies/tykcommon-logger"
+	"github.com/nu7hatch/gouuid"
+	"os"
 )
 
 var log *logrus.Logger = logger.GetLogger()

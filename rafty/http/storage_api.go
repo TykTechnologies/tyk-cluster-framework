@@ -1,13 +1,13 @@
 package httpd
 
 import (
-	"time"
 	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/rafty/objects"
 	"github.com/foize/go.fifo"
+	"time"
 
-	"sync"
 	"encoding/json"
 	"github.com/TykTechnologies/logrus"
+	"sync"
 )
 
 const (
@@ -17,13 +17,13 @@ const (
 type SnapshotStatus int
 
 const (
-	StatusSnapshotFound SnapshotStatus = 1
-	StatusSnapshotNotFound SnapshotStatus = 2
+	StatusSnapshotFound     SnapshotStatus = 1
+	StatusSnapshotNotFound  SnapshotStatus = 2
 	StatusSnapshotNotLeader SnapshotStatus = 3
 )
 
 type qSnapShot struct {
-	qmu sync.Mutex
+	qmu           sync.Mutex
 	queueSnapshot map[string]ttlIndexElement
 }
 
@@ -58,19 +58,19 @@ func newQueueSnapShot() *qSnapShot {
 }
 
 // StorageAPI exposes the raw store getters and setters and adds a TTL handler
-type StorageAPI struct{
-	store Store
-	ttlIndex *fifo.Queue
+type StorageAPI struct {
+	store         Store
+	ttlIndex      *fifo.Queue
 	queueSnapshot *qSnapShot
-	TTLChunkSize int
+	TTLChunkSize  int
 }
 
 func NewStorageAPI(store Store) *StorageAPI {
-	thisSA :=  &StorageAPI{
-		store: store,
-		ttlIndex: fifo.NewQueue(),
+	thisSA := &StorageAPI{
+		store:         store,
+		ttlIndex:      fifo.NewQueue(),
 		queueSnapshot: newQueueSnapShot(),
-		TTLChunkSize: 100,
+		TTLChunkSize:  100,
 	}
 
 	log.WithFields(logrus.Fields{
@@ -91,7 +91,7 @@ func (s *StorageAPI) GetKey(k string, evenIfExpired bool) (*KeyValueAPIObject, *
 	// Decode it
 	returnValue, err := NewKeyValueAPIObjectFromMsgPack(v)
 	if err != nil {
-		return nil, NewErrorResponse("/"+k, "Key marshalling failed: " + err.Error())
+		return nil, NewErrorResponse("/"+k, "Key marshalling failed: "+err.Error())
 
 	}
 
@@ -99,7 +99,7 @@ func (s *StorageAPI) GetKey(k string, evenIfExpired bool) (*KeyValueAPIObject, *
 		log.WithFields(logrus.Fields{
 			"prefix": "tcf.rafty.storage-api",
 		}).Debug("KEY EXISTS BUT HAS EXPIRED")
-		return nil, NewErrorNotFound("/"+k)
+		return nil, NewErrorNotFound("/" + k)
 	}
 
 	return returnValue, nil
@@ -118,7 +118,7 @@ func (s *StorageAPI) SetKey(k string, value *rafty_objects.NodeValue, overwrite 
 	}
 
 	if errResp == nil && allowOverwrite == false {
-		keyExistsErr := &ErrorResponse{Cause: "/"+k, Error: RAFTErrorKeyExists}
+		keyExistsErr := &ErrorResponse{Cause: "/" + k, Error: RAFTErrorKeyExists}
 		return nil, keyExistsErr
 	}
 
@@ -142,7 +142,7 @@ func (s *StorageAPI) SetKey(k string, value *rafty_objects.NodeValue, overwrite 
 	}
 
 	// Track the TTL
-	if value.TTL > 0  && value.Key != TTLSNAPSHOT_KEY {
+	if value.TTL > 0 && value.Key != TTLSNAPSHOT_KEY {
 		s.trackTTLForKey(value.Key, value.Expiration.Unix())
 	}
 
@@ -151,7 +151,7 @@ func (s *StorageAPI) SetKey(k string, value *rafty_objects.NodeValue, overwrite 
 
 func (s *StorageAPI) DeleteKey(k string) (*KeyValueAPIObject, *ErrorResponse) {
 	if err := s.store.Delete(k); err != nil {
-		return nil, NewErrorResponse("/"+k, "Delete failed: " + err.Error())
+		return nil, NewErrorResponse("/"+k, "Delete failed: "+err.Error())
 	}
 
 	return nil, nil
@@ -164,13 +164,13 @@ func (s *StorageAPI) getKeyFromStore(k string) ([]byte, *ErrorResponse) {
 
 	v, err := s.store.Get(k)
 	if err != nil {
-		thisErr := NewErrorNotFound("/"+k)
+		thisErr := NewErrorNotFound("/" + k)
 		thisErr.MetaData = err.Error()
 		return nil, thisErr
 	}
 
 	if v == nil {
-		thisErr := NewErrorNotFound("/"+k)
+		thisErr := NewErrorNotFound("/" + k)
 		return nil, thisErr
 	}
 
@@ -178,8 +178,8 @@ func (s *StorageAPI) getKeyFromStore(k string) ([]byte, *ErrorResponse) {
 }
 
 type ttlIndexElement struct {
-	TTL int64
-	Key string
+	TTL   int64
+	Key   string
 	Index int
 }
 
@@ -257,7 +257,7 @@ func (s *StorageAPI) processTTLElement() {
 			if tn > thisElem.(ttlIndexElement).TTL {
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf.rafty.storage-api",
-				}).Info("-> Removing key (", thisElem.(ttlIndexElement).Key,") because expired")
+				}).Info("-> Removing key (", thisElem.(ttlIndexElement).Key, ") because expired")
 				s.DeleteKey(thisElem.(ttlIndexElement).Key)
 
 				// It's not in the queue, aso it shouldn't be in the snapshot
@@ -270,11 +270,10 @@ func (s *StorageAPI) processTTLElement() {
 			}
 		}
 
-
 	}
 
 	// Lets apply the delete operations to our queue
-	for _, elem := range(applyDeletes) {
+	for _, elem := range applyDeletes {
 		s.queueSnapshot.qmu.Lock()
 		delete(s.queueSnapshot.queueSnapshot, elem.Key)
 		log.WithFields(logrus.Fields{

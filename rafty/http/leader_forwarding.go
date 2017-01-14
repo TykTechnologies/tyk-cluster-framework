@@ -1,8 +1,8 @@
 package httpd
 
 import (
-	"net/http"
 	"github.com/TykTechnologies/tyk-cluster-framework/rafty/store"
+	"net/http"
 	"net/http/httputil"
 	"net/url"
 )
@@ -10,7 +10,7 @@ import (
 type CallType string
 
 const (
-	CallGetKey CallType = "get"
+	CallGetKey    CallType = "get"
 	CallUpdateKey CallType = "update"
 	CallDeleteKey CallType = "delete"
 )

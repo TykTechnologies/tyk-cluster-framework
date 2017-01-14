@@ -3,15 +3,15 @@ package client
 import (
 	"errors"
 	"github.com/TykTechnologies/logrus"
-	"time"
-	"gopkg.in/vmihailenco/msgpack.v2"
-	"sync"
 	"github.com/TykTechnologies/tyk-cluster-framework/client/beacon"
+	"gopkg.in/vmihailenco/msgpack.v2"
 	"runtime"
+	"sync"
+	"time"
 )
 
 type payloadMap struct {
-	mu sync.RWMutex
+	mu              sync.RWMutex
 	payloadHandlers map[string]PayloadHandler
 }
 
@@ -32,18 +32,18 @@ func (p *payloadMap) Get(filter string) (PayloadHandler, bool) {
 type BeaconClient struct {
 	ClientHandler
 	Interval int
-	Port int
+	Port     int
 
-	beacon *beacon.Beacon
-	publishing bool
-	hasStarted bool
-	listening bool
-	encoding Encoding
+	beacon          *beacon.Beacon
+	publishing      bool
+	hasStarted      bool
+	listening       bool
+	encoding        Encoding
 	payloadHandlers payloadMap
 }
 
 type BeaconTransmit struct {
-	Channel string
+	Channel  string
 	Transmit []byte
 }
 
@@ -85,7 +85,7 @@ func (b *BeaconClient) Publish(filter string, p Payload) error {
 	}
 
 	asPayload := BeaconTransmit{
-		Channel: filter,
+		Channel:  filter,
 		Transmit: encodedPayload,
 	}
 
@@ -93,7 +93,6 @@ func (b *BeaconClient) Publish(filter string, p Payload) error {
 	if encErr != nil {
 		return encErr
 	}
-
 
 	if len(wrappedSend) == 0 {
 		log.WithFields(logrus.Fields{
@@ -180,7 +179,6 @@ func (b *BeaconClient) Subscribe(filter string, handler PayloadHandler) error {
 	if b.listening {
 		return nil
 	}
-
 
 	go b.startListening()
 	return nil

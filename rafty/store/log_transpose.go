@@ -3,12 +3,11 @@ package store
 import (
 	"github.com/TykTechnologies/logrus"
 	"strings"
-
 )
 
 type ConvertedLogrusLogger struct {
 	LogInstance *logrus.Logger
-	Prefix string
+	Prefix      string
 }
 
 func (c *ConvertedLogrusLogger) Write(p []byte) (n int, err error) {

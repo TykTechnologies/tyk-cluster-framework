@@ -8,10 +8,10 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/rafty/http"
 	"github.com/TykTechnologies/tyk-cluster-framework/rafty/store"
 	logger "github.com/TykTechnologies/tykcommon-logger"
-	"github.com/TykTechnologies/logrus"
 	"time"
 
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
@@ -20,7 +20,6 @@ import (
 
 var log = logger.GetLogger()
 var logPrefix string = "tcf.rafty"
-
 
 func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signal, broadcastWith client.Client) {
 	log.Info("Log level: ", os.Getenv("TYK_LOGLEVEL"))
@@ -32,7 +31,7 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 	}
 
 	// Ensure Raft storage exists.
-	raftDir  := raftyConfig.RaftDir
+	raftDir := raftyConfig.RaftDir
 	if raftDir == "" {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
@@ -55,7 +54,7 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 
 		if raftyConfig.RunInSingleServerMode == false {
 			select {
-			case masterConfig := <- masterConfigChan:
+			case masterConfig := <-masterConfigChan:
 				raftyConfig.RunInSingleServerMode = false
 				JoinAddress = masterConfig.HttpServerAddr
 				log.WithFields(logrus.Fields{
@@ -138,7 +137,7 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 func masterListener(inBoundChan chan Config, raftyConfig *Config) {
 	lastWrite := time.Now().Unix()
 	for {
-		masterConfig := <- inBoundChan
+		masterConfig := <-inBoundChan
 		if masterConfig.HttpServerAddr != raftyConfig.HttpServerAddr {
 			// Stop flooding the log
 			if (time.Now().Unix() - lastWrite) > int64(10) {
@@ -242,5 +241,3 @@ func leave(leaderAddr, raftAddr string, secure bool) error {
 	defer resp.Body.Close()
 	return nil
 }
-
-
