@@ -13,6 +13,8 @@ type Client interface {
 	Connect() error
 	Publish(string, Payload) error
 	Subscribe(string, PayloadHandler) error
+	Broadcast(string, Payload, int) error
+	StopBroadcast(string) error
 	SetEncoding(Encoding) error
 	Init(interface{}) error
 }

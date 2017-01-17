@@ -58,3 +58,12 @@ func (c *DummyClient) Subscribe(filter string, handler PayloadHandler) error {
 func (c *DummyClient) SetEncoding(enc Encoding) error {
 	return nil
 }
+
+func (c *DummyClient) Broadcast(filter string, payload Payload, interval int) error {
+	return nil
+
+}
+
+func (c *DummyClient) StopBroadcast (f string) error {
+	return nil
+}

@@ -12,6 +12,7 @@ type Payload interface {
 	Encode() error
 	DecodeMessage(interface{}) error
 	SetEncoding(Encoding)
+	Copy() Payload
 }
 
 // DefaultPayload is the default payload that is used by TCF
@@ -41,9 +42,11 @@ func (p *DefaultPayload) Encode() error {
 		}
 		p.Message = string(j)
 		return nil
+
 	default:
 		return errors.New("Encoding is not supported!")
 	}
+
 	return nil
 }
 
@@ -80,4 +83,15 @@ func (p *DefaultPayload) DecodeMessage(into interface{}) error {
 
 func (p *DefaultPayload) SetEncoding(enc Encoding) {
 	p.Encoding = enc
+}
+
+func (p *DefaultPayload) Copy () Payload {
+	np := &DefaultPayload{
+		Message: p.Message,
+		Encoding: p.Encoding,
+		Sig: p.Sig,
+		Time: p.Time,
+	}
+
+	return np
 }

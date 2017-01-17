@@ -53,68 +53,7 @@ func (b *BeaconClient) Connect() error {
 }
 
 func (b *BeaconClient) Publish(filter string, p Payload) error {
-	if p == nil {
-		b.beacon.Silence()
-		b.publishing = false
-		return nil
-	}
-
-	if b.publishing {
-		return nil
-	}
-
-	if TCFConfig.SetEncodingForPayloadsGlobally {
-		b.SetEncoding(b.encoding)
-	}
-
-	data, encErr := Marshal(p, b.encoding)
-	if encErr != nil {
-		return encErr
-	}
-
-	var encodedPayload []byte
-	switch data.(type) {
-	case []byte:
-		encodedPayload = data.([]byte)
-		break
-	case string:
-		encodedPayload = []byte(data.(string))
-		break
-	default:
-		return errors.New("Encoded data is not supported")
-	}
-
-	asPayload := BeaconTransmit{
-		Channel:  filter,
-		Transmit: encodedPayload,
-	}
-
-	wrappedSend, encErr := msgpack.Marshal(asPayload)
-	if encErr != nil {
-		return encErr
-	}
-
-	if len(wrappedSend) == 0 {
-		log.WithFields(logrus.Fields{
-			"prefix": "tcf.beaconclient",
-		}).Error("No data to send, not sending")
-		return nil
-	}
-
-	// We're just changing the payload, so don't start another publish.
-	if b.hasStarted {
-		b.beacon.Restart(wrappedSend)
-		return nil
-	}
-
-	pubErr := b.beacon.Publish(wrappedSend)
-	if pubErr != nil {
-		return pubErr
-	}
-
-	b.publishing = true
-	b.hasStarted = true
-	return nil
+	return errors.New("Beacon only broadcasts and subscribes")
 }
 
 func (b *BeaconClient) registerHandlerForChannel(filter string, handler PayloadHandler) {
@@ -201,5 +140,73 @@ func (b *BeaconClient) Init(config interface{}) error {
 		payloadHandlers: make(map[string]PayloadHandler),
 	}
 
+	return nil
+}
+
+func (b *BeaconClient) Broadcast(filter string, payload Payload, interval int) error {
+
+	if payload == nil {
+		b.beacon.Silence()
+		b.publishing = false
+		return nil
+	}
+
+	if TCFConfig.SetEncodingForPayloadsGlobally {
+		b.SetEncoding(b.encoding)
+	}
+
+	data, encErr := Marshal(payload, b.encoding)
+	if encErr != nil {
+		return encErr
+	}
+
+	var encodedPayload []byte
+	switch data.(type) {
+	case []byte:
+		encodedPayload = data.([]byte)
+		break
+	case string:
+		encodedPayload = []byte(data.(string))
+		break
+	default:
+		return errors.New("Encoded data is not supported")
+	}
+
+	asPayload := BeaconTransmit{
+		Channel:  filter,
+		Transmit: encodedPayload,
+	}
+
+	wrappedSend, encErr := msgpack.Marshal(asPayload)
+	if encErr != nil {
+		return encErr
+	}
+
+	if len(wrappedSend) == 0 {
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.beaconclient",
+		}).Error("No data to send, not sending")
+		return nil
+	}
+
+	// We're just changing the payload, so don't start another publish.
+	if b.hasStarted {
+		b.beacon.Restart(wrappedSend)
+		return nil
+	}
+
+	pubErr := b.beacon.Publish(wrappedSend)
+	if pubErr != nil {
+		return pubErr
+	}
+
+	b.publishing = true
+	b.hasStarted = true
+	return nil
+
+}
+
+func (b *BeaconClient) StopBroadcast (f string) error {
+	b.beacon.Silence()
 	return nil
 }

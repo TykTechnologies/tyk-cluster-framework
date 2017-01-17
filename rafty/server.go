@@ -154,22 +154,32 @@ func masterListener(inBoundChan chan Config, raftyConfig *Config) {
 }
 
 func startBroadCast(msgClient client.Client, s *store.Store, raftyConfig *Config) {
+	var isPublishing bool
 	for {
-		if s.IsLeader() {
-			thisPayload, pErr := client.NewPayload(raftyConfig)
+		if !isPublishing {
+			if s.IsLeader() {
+				thisPayload, pErr := client.NewPayload(raftyConfig)
 
-			if pErr != nil {
+				if pErr != nil {
+					log.WithFields(logrus.Fields{
+						"prefix": logPrefix,
+					}).Fatal(pErr)
+				}
+
 				log.WithFields(logrus.Fields{
-					"prefix": logPrefix,
-				}).Fatal(pErr)
+					"prefix": "tcf-exp",
+				}).Debug("Sending Broadcast: %v", raftyConfig.HttpServerAddr)
+				if bErr := msgClient.Broadcast("tcf.cluster.distributed_store.leader", thisPayload, 1); bErr != nil {
+					log.WithFields(logrus.Fields{
+						"prefix": logPrefix,
+					}).Fatal(bErr)
+				}
+				isPublishing = true
+			} else {
+				msgClient.StopBroadcast("tcf.cluster.distributed_store.leader")
 			}
-
-			log.WithFields(logrus.Fields{
-				"prefix": "tcf-exp",
-			}).Debug("Sending Broadcast: %v", raftyConfig.HttpServerAddr)
-			msgClient.Publish("tcf.cluster.distributed_store.leader", thisPayload)
 		}
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Microsecond * 500)
 	}
 }
 

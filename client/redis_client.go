@@ -14,9 +14,11 @@ type RedisClient struct {
 	URL      string
 	pool     *redis.Pool
 	encoding Encoding
+	broadcastKillChans map[string]chan struct{}
 }
 
 func (c *RedisClient) Init(config interface{}) error {
+	c.broadcastKillChans = make(map[string]chan struct{})
 	return nil
 }
 
@@ -181,4 +183,54 @@ func (c *RedisClient) setupRedisPool(s string) (*redis.Pool, error) {
 	}
 
 	return thisClientPool, nil
+}
+
+func (c *RedisClient) Broadcast(filter string, payload Payload, interval int) error {
+	_, found := c.broadcastKillChans[filter]
+	if found {
+		return errors.New("Filter already broadcasting, stop first")
+	}
+
+	killChan := make(chan struct{})
+	go func(f string, p Payload, i int, k chan struct{}) {
+		var ticker <-chan time.Time
+		ticker = time.After(time.Duration(i) * time.Second)
+
+		for {
+			select {
+			case <- k:
+				// Kill broadcast
+				log.WithFields(logrus.Fields{
+					"prefix": "tcf.redisclient",
+				}).Info("Stopping broadcast on: ", f)
+				return
+			case <- ticker:
+
+				log.WithFields(logrus.Fields{
+					"prefix": "tcf.redisclient",
+				}).Debug ("Sending: ", p)
+
+				if pErr := c.Publish(f, p); pErr != nil {
+					log.WithFields(logrus.Fields{
+						"prefix": "tcf.redisclient",
+					}).Error("Failed to broadcast: ", pErr)
+				}
+				ticker = time.After(time.Duration(i) * time.Second)
+			}
+		}
+
+	}(filter, payload, interval, killChan)
+
+	c.broadcastKillChans[filter] = killChan
+	return nil
+}
+
+func (c *RedisClient) StopBroadcast (f string) error {
+	killChan, found := c.broadcastKillChans[f]
+	if !found {
+		return errors.New("Filter not broadcasting")
+	}
+
+	killChan <- struct{}{}
+	return nil
 }

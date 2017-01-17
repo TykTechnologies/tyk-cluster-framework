@@ -15,8 +15,8 @@ func Marshal(from Payload, enc Encoding) (interface{}, error) {
 }
 
 func marshalJSON(from Payload) (interface{}, error) {
-	// Copy the object, we don;t want to operate on the same payload
-	newPayload := from
+	// Copy the object, we don;t want to operate on the same payload (NOT IDEAL)
+	newPayload := from.Copy()
 	// First encode the inner data payload
 	newPayload.Encode()
 	return json.Marshal(newPayload)
