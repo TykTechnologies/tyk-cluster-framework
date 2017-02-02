@@ -37,6 +37,10 @@ func (s *DummyServer) EnableBroadcast(enabled bool) {
 	s.broadcast = enabled
 }
 
-func (s *DummyServer) SetEncoding(enc encoding) error {
+func (s *DummyServer) SetEncoding(enc client.Encoding) error {
+	return nil
+}
+
+func (s *DummyServer) Stop() error {
 	return nil
 }

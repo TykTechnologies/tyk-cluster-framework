@@ -208,5 +208,6 @@ func (b *BeaconClient) Broadcast(filter string, payload Payload, interval int) e
 
 func (b *BeaconClient) StopBroadcast (f string) error {
 	b.beacon.Silence()
+	b.publishing = false
 	return nil
 }

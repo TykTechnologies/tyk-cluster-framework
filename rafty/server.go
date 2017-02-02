@@ -49,7 +49,7 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
 		}).Info("Starting master boradcaster")
-		go startBroadCast(broadcastWith, s, raftyConfig)
+		go startBroadcast(broadcastWith, s, raftyConfig)
 		startListeningForMasterChange(broadcastWith, masterConfigChan)
 
 		if raftyConfig.RunInSingleServerMode == false {
@@ -153,7 +153,7 @@ func masterListener(inBoundChan chan Config, raftyConfig *Config) {
 
 }
 
-func startBroadCast(msgClient client.Client, s *store.Store, raftyConfig *Config) {
+func startBroadcast(msgClient client.Client, s *store.Store, raftyConfig *Config) {
 	var isPublishing bool
 	for {
 		if !isPublishing {
@@ -177,9 +177,10 @@ func startBroadCast(msgClient client.Client, s *store.Store, raftyConfig *Config
 				isPublishing = true
 			} else {
 				msgClient.StopBroadcast("tcf.cluster.distributed_store.leader")
+				isPublishing = false
 			}
 		}
-		time.Sleep(time.Microsecond * 500)
+		time.Sleep(time.Microsecond * 100)
 	}
 }
 

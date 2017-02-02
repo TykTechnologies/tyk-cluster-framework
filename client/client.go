@@ -104,6 +104,36 @@ func NewClient(connectionString string, baselineEncoding Encoding) (Client, erro
 		c.SetEncoding(baselineEncoding)
 		c.Init(nil)
 		return c, nil
+
+	case "mangos":
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf",
+		}).Info("Using Mangos back-end")
+
+		URL, err := url.Parse(connectionString)
+		if err != nil {
+			return nil, err
+		}
+
+		parts := strings.Split(URL.Host, ":")
+		if len(parts) < 2 {
+			return nil, errors.New("No port specified")
+		}
+		url := "tcp://" + URL.Host
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf",
+		}).Info("Connecting to: ", url)
+
+		c := &MangosClient{
+			URL: url,
+		}
+
+		c.SetEncoding(baselineEncoding)
+		if initErr := c.Init(nil); initErr != nil {
+			return nil, initErr
+		}
+
+		return c, nil
 	default:
 		return nil, errors.New("No valid transport set.")
 	}

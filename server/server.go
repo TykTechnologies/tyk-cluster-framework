@@ -18,6 +18,7 @@ type Server interface {
 	EnableBroadcast(bool)
 	SetEncoding(client.Encoding) error
 	Init(interface{}) error
+	Stop() error
 }
 
 // NewServer will generate a new server object based on the enum provided.
@@ -33,6 +34,12 @@ func NewServer(connectionString string, baselineEncoding client.Encoding) (Serve
 		s := &DummyServer{}
 		s.SetEncoding(baselineEncoding)
 		s.Init(nil)
+		return s, nil
+	case "mangos":
+		s := &MangosServer{}
+		s.SetEncoding(baselineEncoding)
+		url := "tcp://" + parts[1]
+		s.Init(newMangoConfig(url))
 		return s, nil
 	default:
 		s := &DummyServer{}
