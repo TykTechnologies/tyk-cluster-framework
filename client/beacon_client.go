@@ -33,6 +33,7 @@ type BeaconClient struct {
 	ClientHandler
 	Interval int
 	Port     int
+	SubscribeChan chan string
 
 	beacon          *beacon.Beacon
 	publishing      bool
@@ -45,6 +46,11 @@ type BeaconClient struct {
 type BeaconTransmit struct {
 	Channel  string
 	Transmit []byte
+}
+
+func (b *BeaconClient) Stop() error {
+	b.beacon.Close()
+	return nil
 }
 
 func (b *BeaconClient) Connect() error {
@@ -85,9 +91,10 @@ func (b *BeaconClient) handleBeaconMessage(s *beacon.Signal) {
 	b.HandleRawMessage(beaconMsg.Transmit, handler, b.encoding)
 }
 
-func (b *BeaconClient) startListening() {
+func (b *BeaconClient) startListening(filter string) {
 	b.beacon.Subscribe([]byte{})
 	b.listening = true
+	b.SubscribeChan <- filter
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.beaconclient",
 	}).Debug("Listening")
@@ -112,15 +119,15 @@ func (b *BeaconClient) startListening() {
 	b.listening = false
 }
 
-func (b *BeaconClient) Subscribe(filter string, handler PayloadHandler) error {
+func (b *BeaconClient) Subscribe(filter string, handler PayloadHandler) (chan string, error) {
 	b.registerHandlerForChannel(filter, handler)
 
 	if b.listening {
-		return nil
+		return b.SubscribeChan, nil
 	}
 
-	go b.startListening()
-	return nil
+	go b.startListening(filter)
+	return b.SubscribeChan, nil
 }
 
 func (b *BeaconClient) SetEncoding(enc Encoding) error {
@@ -135,6 +142,7 @@ func (b *BeaconClient) Init(config interface{}) error {
 
 	b.beacon = beacon.New()
 	b.beacon.SetPort(b.Port).SetInterval(time.Duration(b.Interval) * time.Second)
+	b.SubscribeChan = make(chan string)
 
 	b.payloadHandlers = payloadMap{
 		payloadHandlers: make(map[string]PayloadHandler),

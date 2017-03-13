@@ -61,44 +61,6 @@ func (s *MangosServer) Listen() error {
 	return nil
 }
 
-func (s *MangosServer) Publish(filter string, payload client.Payload) error {
-	if payload == nil {
-		return nil
-	}
-
-	data, encErr := client.Marshal(payload, s.encoding)
-	if encErr != nil {
-		return encErr
-	}
-
-	var encodedPayload []byte
-	switch data.(type) {
-	case []byte:
-		encodedPayload = data.([]byte)
-		break
-	case string:
-		encodedPayload = []byte(data.(string))
-		break
-	default:
-		return errors.New("Encoded data is not supported")
-	}
-
-	asPayload := append([]byte(filter), encodedPayload...)
-
-	if len(asPayload) == 0 {
-		log.WithFields(logrus.Fields{
-			"prefix": "tcf.mangos-server",
-		}).Error("No data to send, not sending")
-		return nil
-	}
-
-	if pubErr := s.sock.Send(asPayload); pubErr != nil {
-		return fmt.Errorf("Failed publishing: %s", pubErr.Error())
-	}
-
-	return nil
-}
-
 func (s *MangosServer) EnableBroadcast(enabled bool) {
 	// no op
 }

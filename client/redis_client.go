@@ -15,11 +15,17 @@ type RedisClient struct {
 	pool     *redis.Pool
 	encoding Encoding
 	broadcastKillChans map[string]chan struct{}
+	SubscribeChan chan string
 }
 
 func (c *RedisClient) Init(config interface{}) error {
 	c.broadcastKillChans = make(map[string]chan struct{})
+	c.SubscribeChan = make(chan string)
 	return nil
+}
+
+func (c *RedisClient) Stop() error {
+	return c.pool.Close()
 }
 
 func (c *RedisClient) Connect() error {
@@ -80,7 +86,7 @@ func (c *RedisClient) Publish(filter string, p Payload) error {
 	return nil
 }
 
-func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) error {
+func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) (chan string, error) {
 
 	// Create a subscription and a hold loop, the outer loop is to re-create the object if it breaks.
 	go func(filter string, handler PayloadHandler) {
@@ -95,6 +101,7 @@ func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) error {
 
 		psc := redis.PubSubConn{Conn: conn}
 		psc.Subscribe(filter)
+
 		for {
 			switch v := psc.Receive().(type) {
 			case redis.Message:
@@ -104,6 +111,7 @@ func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) error {
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf.redisclient",
 				}).Info("Subscription started: ", v.Channel)
+				c.SubscribeChan <- filter
 
 			case error:
 				log.WithFields(logrus.Fields{
@@ -117,7 +125,7 @@ func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) error {
 
 	}(filter, handler)
 
-	return nil
+	return c.SubscribeChan, nil
 }
 
 func (c *RedisClient) SetEncoding(enc Encoding) error {

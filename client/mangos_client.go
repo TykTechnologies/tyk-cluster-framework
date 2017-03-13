@@ -48,11 +48,13 @@ type MangosClient struct {
 	encoding        Encoding
 	payloadHandlers socketMap
 	broadcastKillChans map[string]chan struct{}
+	SubscribeChan chan string
 
 }
 
 func (m *MangosClient) Init(config interface{}) error {
 
+	m.SubscribeChan = make(chan string)
 	m.payloadHandlers = socketMap{
 		payloadHandlers: make(map[string]*socketPayloadHandler),
 	}
@@ -76,6 +78,10 @@ func (m *MangosClient) Connect() error {
 	log.Info("Connected! ", m.URL)
 
 	return nil
+}
+
+func (m *MangosClient) Stop() error {
+	return m.sock.Close()
 }
 
 func (m *MangosClient) Publish(filter string, payload Payload) error {
@@ -128,11 +134,15 @@ func (m *MangosClient) registerHandlerForChannel(socket mangos.Socket, filter st
 	}).Debugf("Done adding handler for: %v\n", filter)
 }
 
+
 func (m *MangosClient) startListening(sock mangos.Socket, channel string) {
 	var msg []byte
 	var err error
 	log.Info("Listening on: ", channel)
+	m.SubscribeChan <- channel
+
 	for {
+
 		if msg, err = sock.Recv(); err != nil {
 			log.WithFields(logrus.Fields{
 				"prefix": "tcf.MangosClient",
@@ -157,19 +167,21 @@ func (m *MangosClient) startListening(sock mangos.Socket, channel string) {
 			}
 		}
 
+
 	}
+
 }
 
-func (m *MangosClient) Subscribe(filter string, handler PayloadHandler) error {
+func (m *MangosClient) Subscribe(filter string, handler PayloadHandler) (chan string, error) {
 	var sock mangos.Socket
 	var err error
 
 	if sock, err = sub.NewSocket(); err != nil {
-		return fmt.Errorf("can't get new sub socket: %s", err.Error())
+		return m.SubscribeChan, fmt.Errorf("can't get new sub socket: %s", err.Error())
 	}
 	sock.AddTransport(tcp.NewTransport())
 	if err = sock.Dial(m.URL); err != nil {
-		return fmt.Errorf("can't dial on sub socket: %s", err.Error())
+		return m.SubscribeChan, fmt.Errorf("can't dial on sub socket: %s", err.Error())
 	}
 	// Empty byte array effectively subscribes to everything
 	err = sock.SetOption(mangos.OptionSubscribe, []byte(filter))
@@ -177,7 +189,7 @@ func (m *MangosClient) Subscribe(filter string, handler PayloadHandler) error {
 	m.registerHandlerForChannel(sock, filter, handler)
 
 	go m.startListening(sock, filter)
-	return nil
+	return m.SubscribeChan, nil
 }
 
 func (m *MangosClient) SetEncoding(enc Encoding) error {

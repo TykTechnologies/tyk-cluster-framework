@@ -14,7 +14,6 @@ var log *logrus.Logger = logger.GetLogger()
 // Server represents a server object that accepts connections for a queue service
 type Server interface {
 	Listen() error
-	Publish(string, client.Payload) error
 	EnableBroadcast(bool)
 	SetEncoding(client.Encoding) error
 	Init(interface{}) error

@@ -12,11 +12,12 @@ import (
 type Client interface {
 	Connect() error
 	Publish(string, Payload) error
-	Subscribe(string, PayloadHandler) error
+	Subscribe(string, PayloadHandler) (chan string, error)
 	Broadcast(string, Payload, int) error
 	StopBroadcast(string) error
 	SetEncoding(Encoding) error
 	Init(interface{}) error
+	Stop() error
 }
 
 // NewClient will create a new client object based on the enum provided, the object will be pre-configured

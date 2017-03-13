@@ -9,9 +9,15 @@ type DummyClient struct {
 	ClientHandler
 	Hostname string
 	Port     int
+	SubscribeChan chan string
 }
 
 func (c *DummyClient) Init(config interface{}) error {
+	c.SubscribeChan = make(chan string)
+	return nil
+}
+
+func (c *DummyClient) Stop() error {
 	return nil
 }
 
@@ -41,7 +47,7 @@ func (c *DummyClient) Publish(filter string, p Payload) error {
 	return nil
 }
 
-func (c *DummyClient) Subscribe(filter string, handler PayloadHandler) error {
+func (c *DummyClient) Subscribe(filter string, handler PayloadHandler) (chan string, error) {
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.dummyclient",
 	}).Info("Subscribed: ", filter)
@@ -52,7 +58,9 @@ func (c *DummyClient) Subscribe(filter string, handler PayloadHandler) error {
 			- Call HandleRawMessage() with the data value of the inbound payload to convert it
 			- This will pass that value to the actual payload handler in order to generalise the inbound pattern
 	*/
-	return nil
+	c.SubscribeChan <- filter
+
+	return c.SubscribeChan, nil
 }
 
 func (c *DummyClient) SetEncoding(enc Encoding) error {
