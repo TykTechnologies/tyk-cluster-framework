@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
-	"github.com/TykTechnologies/tyk-cluster-framework/rafty"
+	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty"
 	logger "github.com/TykTechnologies/tykcommon-logger"
 	"github.com/nu7hatch/gouuid"
 	"os"

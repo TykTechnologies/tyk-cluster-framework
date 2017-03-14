@@ -2,7 +2,7 @@ package httpd
 
 import (
 	"fmt"
-	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/rafty/objects"
+	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/objects"
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 

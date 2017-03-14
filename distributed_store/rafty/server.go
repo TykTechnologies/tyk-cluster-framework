@@ -9,8 +9,8 @@ import (
 	"os/signal"
 
 	"github.com/TykTechnologies/logrus"
-	"github.com/TykTechnologies/tyk-cluster-framework/rafty/http"
-	"github.com/TykTechnologies/tyk-cluster-framework/rafty/store"
+	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/http"
+	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/store"
 	logger "github.com/TykTechnologies/tykcommon-logger"
 	"time"
 

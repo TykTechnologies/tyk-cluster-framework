@@ -1,7 +1,7 @@
 package httpd
 
 import (
-	"github.com/TykTechnologies/tyk-cluster-framework/rafty/store"
+	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/store"
 	"net/http"
 	"net/http/httputil"
 	"net/url"

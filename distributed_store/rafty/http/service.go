@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/TykTechnologies/logrus"
-	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/rafty/objects"
+	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/objects"
 	logger "github.com/TykTechnologies/tykcommon-logger"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"

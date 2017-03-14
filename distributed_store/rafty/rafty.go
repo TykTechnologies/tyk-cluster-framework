@@ -1,7 +1,7 @@
 package rafty
 
 import (
-	"github.com/TykTechnologies/tyk-cluster-framework/rafty/http"
+	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/http"
 )
 
 // Config defaults

@@ -1,7 +1,7 @@
 package httpd
 
 import (
-	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/rafty/objects"
+	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/objects"
 	"github.com/foize/go.fifo"
 	"time"
 
