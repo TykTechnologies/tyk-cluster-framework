@@ -78,3 +78,8 @@ func NewErrorNotFound(cause string) *ErrorResponse {
 		Error: RAFTErrorNotFound,
 	}
 }
+
+type LeaderResponse struct {
+	IsLeader bool `json:"is_leader"`
+	LeaderIs string `json:"leader_is"`
+}

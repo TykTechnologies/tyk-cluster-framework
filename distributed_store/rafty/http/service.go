@@ -71,6 +71,7 @@ func (s *Service) Start() error {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/join", s.handleJoin).Methods("POST")
+	r.HandleFunc("/leader", s.handleIsLeader).Methods("GET")
 	r.HandleFunc("/setpeers", s.setPeers).Methods("POST")
 	r.HandleFunc("/remove", s.handleRemove).Methods("POST")
 	r.HandleFunc("/key/{name}", s.handleGetKey).Methods("GET")
@@ -137,6 +138,16 @@ func (s *Service) setPeers(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+}
+
+func (s *Service) handleIsLeader(w http.ResponseWriter, r *http.Request) {
+	v := LeaderResponse {
+		IsLeader: s.store.IsLeader(),
+		LeaderIs: s.store.Leader(),
+	}
+
+	s.store.IsLeader()
+	s.writeToClient(w, r, v, 200)
 }
 
 func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
