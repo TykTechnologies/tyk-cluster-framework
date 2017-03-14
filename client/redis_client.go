@@ -7,13 +7,14 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 type RedisClient struct {
 	ClientHandler
 	URL      string
 	pool     *redis.Pool
-	encoding Encoding
+	Encoding encoding.Encoding
 	broadcastKillChans map[string]chan struct{}
 	SubscribeChan chan string
 }
@@ -47,9 +48,9 @@ func (c *RedisClient) Connect() error {
 
 func (c *RedisClient) Publish(filter string, p Payload) error {
 	if TCFConfig.SetEncodingForPayloadsGlobally {
-		p.SetEncoding(c.encoding)
+		p.SetEncoding(c.Encoding)
 	}
-	data, encErr := Marshal(p, c.encoding)
+	data, encErr := Marshal(p, c.Encoding)
 	if encErr != nil {
 		return encErr
 	}
@@ -86,6 +87,13 @@ func (c *RedisClient) Publish(filter string, p Payload) error {
 	return nil
 }
 
+func (c *RedisClient) notifySub(channel string) {
+	select {
+	case c.SubscribeChan <- channel:
+	default:
+	}
+}
+
 func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) (chan string, error) {
 
 	// Create a subscription and a hold loop, the outer loop is to re-create the object if it breaks.
@@ -105,13 +113,13 @@ func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) (chan str
 		for {
 			switch v := psc.Receive().(type) {
 			case redis.Message:
-				c.HandleRawMessage(v.Data, handler, c.encoding)
+				c.HandleRawMessage(v.Data, handler, c.Encoding)
 
 			case redis.Subscription:
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf.redisclient",
 				}).Info("Subscription started: ", v.Channel)
-				c.SubscribeChan <- filter
+				c.notifySub(filter)
 
 			case error:
 				log.WithFields(logrus.Fields{
@@ -128,8 +136,8 @@ func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) (chan str
 	return c.SubscribeChan, nil
 }
 
-func (c *RedisClient) SetEncoding(enc Encoding) error {
-	c.encoding = enc
+func (c *RedisClient) SetEncoding(enc encoding.Encoding) error {
+	c.Encoding = enc
 	return nil
 }
 

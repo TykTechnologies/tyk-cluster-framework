@@ -2,11 +2,11 @@ package server
 
 import (
 	"errors"
-	"github.com/TykTechnologies/tyk-cluster-framework/client"
 	logger "github.com/TykTechnologies/tykcommon-logger"
 	"strings"
 
 	"github.com/TykTechnologies/logrus"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 var log *logrus.Logger = logger.GetLogger()
@@ -15,13 +15,13 @@ var log *logrus.Logger = logger.GetLogger()
 type Server interface {
 	Listen() error
 	EnableBroadcast(bool)
-	SetEncoding(client.Encoding) error
+	SetEncoding(encoding.Encoding) error
 	Init(interface{}) error
 	Stop() error
 }
 
 // NewServer will generate a new server object based on the enum provided.
-func NewServer(connectionString string, baselineEncoding client.Encoding) (Server, error) {
+func NewServer(connectionString string, baselineEncoding encoding.Encoding) (Server, error) {
 	parts := strings.Split(connectionString, "://")
 	if len(parts) < 2 {
 		return nil, errors.New("Connection string not in the correct format, must be transport://server:port")

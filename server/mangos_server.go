@@ -2,7 +2,7 @@ package server
 
 import (
 	"github.com/TykTechnologies/logrus"
-	"github.com/TykTechnologies/tyk-cluster-framework/client"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/pub"
 	"github.com/go-mangos/mangos/transport/tcp"
@@ -14,16 +14,16 @@ type MangosServer struct {
 	listening bool
 	sock mangos.Socket
 	conf *MangosServerConf
-	encoding client.Encoding
+	encoding encoding.Encoding
 }
 
 type MangosServerConf struct {
-	Encoding client.Encoding
+	Encoding encoding.Encoding
 	listenOn string
 }
 
 func newMangoConfig(listenOn string) *MangosServerConf {
-	return &MangosServerConf{listenOn: listenOn, Encoding: client.JSON}
+	return &MangosServerConf{listenOn: listenOn, Encoding: encoding.JSON}
 }
 
 func (s *MangosServer) Init(config interface{}) error {
@@ -65,7 +65,7 @@ func (s *MangosServer) EnableBroadcast(enabled bool) {
 	// no op
 }
 
-func (s *MangosServer) SetEncoding(enc client.Encoding) error {
+func (s *MangosServer) SetEncoding(enc encoding.Encoding) error {
 	s.encoding = enc
 	return nil
 }

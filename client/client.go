@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 // Client is a queue client managed by TCF
@@ -15,14 +16,14 @@ type Client interface {
 	Subscribe(string, PayloadHandler) (chan string, error)
 	Broadcast(string, Payload, int) error
 	StopBroadcast(string) error
-	SetEncoding(Encoding) error
+	SetEncoding(encoding.Encoding) error
 	Init(interface{}) error
 	Stop() error
 }
 
 // NewClient will create a new client object based on the enum provided, the object will be pre-configured
 // with the defaults needed and any custom configurations passed in for the type
-func NewClient(connectionString string, baselineEncoding Encoding) (Client, error) {
+func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Client, error) {
 	parts := strings.Split(connectionString, "://")
 	if len(parts) < 2 {
 		return nil, errors.New("Connection string not in the correct format, must be transport://server:port")

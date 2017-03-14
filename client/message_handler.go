@@ -2,15 +2,16 @@ package client
 
 import (
 	"errors"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 type MessageHandler interface {
-	HandleRawMessage(interface{}, Encoding) (Payload, error)
+	HandleRawMessage(interface{}, encoding.Encoding) (Payload, error)
 }
 
 type DefaultMessageHandler struct{}
 
-func (m *DefaultMessageHandler) HandleRawMessage(rawMessage interface{}, enc Encoding) (Payload, error) {
+func (m *DefaultMessageHandler) HandleRawMessage(rawMessage interface{}, enc encoding.Encoding) (Payload, error) {
 	switch rawMessage.(type) {
 	case []byte:
 		return m.handleByteArrayMessage(rawMessage.([]byte), enc)
@@ -19,7 +20,7 @@ func (m *DefaultMessageHandler) HandleRawMessage(rawMessage interface{}, enc Enc
 	}
 }
 
-func (m *DefaultMessageHandler) handleByteArrayMessage(rawMessage []byte, enc Encoding) (Payload, error) {
+func (m *DefaultMessageHandler) handleByteArrayMessage(rawMessage []byte, enc encoding.Encoding) (Payload, error) {
 	thisPayload, pErr := NewPayload(struct{}{})
 	if pErr != nil {
 		return nil, pErr

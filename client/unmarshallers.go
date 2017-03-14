@@ -3,14 +3,15 @@ package client
 import (
 	"encoding/json"
 	"errors"
+	tykenc "github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
-func Unmarshal(into Payload, data interface{}, enc Encoding) error {
+func Unmarshal(into Payload, data interface{}, enc tykenc.Encoding) error {
 	switch enc {
-	case JSON:
+	case tykenc.JSON:
 		return unmarshalJSON(into, data)
 	default:
-		return errors.New("Encoding is not supported!")
+		return errors.New("encoding.Encoding is not supported!")
 	}
 }
 

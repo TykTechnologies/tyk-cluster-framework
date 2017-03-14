@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"sync"
 	"time"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 type payloadMap struct {
@@ -39,7 +40,7 @@ type BeaconClient struct {
 	publishing      bool
 	hasStarted      bool
 	listening       bool
-	encoding        Encoding
+	Encoding        encoding.Encoding
 	payloadHandlers payloadMap
 }
 
@@ -88,7 +89,7 @@ func (b *BeaconClient) handleBeaconMessage(s *beacon.Signal) {
 		return
 	}
 
-	b.HandleRawMessage(beaconMsg.Transmit, handler, b.encoding)
+	b.HandleRawMessage(beaconMsg.Transmit, handler, b.Encoding)
 }
 
 func (b *BeaconClient) startListening(filter string) {
@@ -130,8 +131,8 @@ func (b *BeaconClient) Subscribe(filter string, handler PayloadHandler) (chan st
 	return b.SubscribeChan, nil
 }
 
-func (b *BeaconClient) SetEncoding(enc Encoding) error {
-	b.encoding = enc
+func (b *BeaconClient) SetEncoding(enc encoding.Encoding) error {
+	b.Encoding = enc
 	return nil
 }
 
@@ -160,10 +161,10 @@ func (b *BeaconClient) Broadcast(filter string, payload Payload, interval int) e
 	}
 
 	if TCFConfig.SetEncodingForPayloadsGlobally {
-		b.SetEncoding(b.encoding)
+		b.SetEncoding(b.Encoding)
 	}
 
-	data, encErr := Marshal(payload, b.encoding)
+	data, encErr := Marshal(payload, b.Encoding)
 	if encErr != nil {
 		return encErr
 	}

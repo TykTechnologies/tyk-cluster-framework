@@ -2,15 +2,16 @@ package client
 
 import (
 	"encoding/json"
+	tykEnc "github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"errors"
 )
 
-func Marshal(from Payload, enc Encoding) (interface{}, error) {
+func Marshal(from Payload, enc tykEnc.Encoding) (interface{}, error) {
 	switch enc {
-	case JSON:
+	case tykEnc.JSON:
 		return marshalJSON(from)
 	default:
-		return nil, errors.New("Encoding is not supported!")
+		return nil, errors.New("encoding.Encoding is not supported!")
 	}
 }
 

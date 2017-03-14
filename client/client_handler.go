@@ -3,16 +3,17 @@ package client
 import (
 	"errors"
 	"github.com/TykTechnologies/logrus"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 // ClientHandler provides helper functions and wrappers to decode a raw message into a payload object
 // to pass onto a payload handler
 type ClientHandler struct{}
 
-// HandleRawMessage will take the raw data, payload handler and encoding, decode the value,
+// HandleRawMessage will take the raw data, payload handler and encoding.Encoding, decode the value,
 // pass it to the handler and return an error if there was a problem
-func (c ClientHandler) HandleRawMessage(rawMessage interface{}, payloadHandler PayloadHandler, enc Encoding) error {
-	// First, decode the message based on it's type and encoding
+func (c ClientHandler) HandleRawMessage(rawMessage interface{}, payloadHandler PayloadHandler, enc encoding.Encoding) error {
+	// First, decode the message based on it's type and encoding.Encoding
 	msgHandler := NewMessageHandler()
 	asPayload, err := msgHandler.HandleRawMessage(rawMessage, enc)
 	if err != nil {
@@ -29,10 +30,10 @@ func (c ClientHandler) HandleRawMessage(rawMessage interface{}, payloadHandler P
 }
 
 // WrappedHandler returns a payload handler that includes the pre-processing step
-func (c ClientHandler) WrappedHandler(rawMessage interface{}, payloadHandler PayloadHandler, enc Encoding) PayloadHandler {
+func (c ClientHandler) WrappedHandler(rawMessage interface{}, payloadHandler PayloadHandler, enc encoding.Encoding) PayloadHandler {
 
 	return func(payload Payload) {
-		// First, decode the message based on it's type and encoding
+		// First, decode the message based on it's type and encoding.Encoding
 		msgHandler := NewMessageHandler()
 		asPayload, err := msgHandler.HandleRawMessage(rawMessage, enc)
 		if err != nil {

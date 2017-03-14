@@ -3,6 +3,7 @@ package client
 import (
 	"errors"
 	"github.com/TykTechnologies/logrus"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 type DummyClient struct {
@@ -47,6 +48,13 @@ func (c *DummyClient) Publish(filter string, p Payload) error {
 	return nil
 }
 
+func (c *DummyClient) notifySub(channel string) {
+	select {
+	case c.SubscribeChan <- channel:
+	default:
+	}
+}
+
 func (c *DummyClient) Subscribe(filter string, handler PayloadHandler) (chan string, error) {
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.dummyclient",
@@ -58,12 +66,12 @@ func (c *DummyClient) Subscribe(filter string, handler PayloadHandler) (chan str
 			- Call HandleRawMessage() with the data value of the inbound payload to convert it
 			- This will pass that value to the actual payload handler in order to generalise the inbound pattern
 	*/
-	c.SubscribeChan <- filter
+	c.notifySub(filter)
 
 	return c.SubscribeChan, nil
 }
 
-func (c *DummyClient) SetEncoding(enc Encoding) error {
+func (c *DummyClient) SetEncoding(enc encoding.Encoding) error {
 	return nil
 }
 

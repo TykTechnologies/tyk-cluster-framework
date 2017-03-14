@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/TykTechnologies/logrus"
+	tykenc "github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 // A payload is a type of object that can be used to send around a queue managed by TCF
@@ -11,14 +12,14 @@ type Payload interface {
 	Verify() error
 	Encode() error
 	DecodeMessage(interface{}) error
-	SetEncoding(Encoding)
+	SetEncoding(tykenc.Encoding)
 	Copy() Payload
 }
 
 // DefaultPayload is the default payload that is used by TCF
 type DefaultPayload struct {
 	Message  interface{}
-	Encoding Encoding
+	Encoding tykenc.Encoding
 	Sig      string
 	Time     int64
 }
@@ -32,10 +33,10 @@ func (p *DefaultPayload) Verify() error {
 	return nil
 }
 
-// Encode will convert the payload into the baseline encoding type to send over the wire
+// Encode will convert the payload into the baseline encoding.Encoding type to send over the wire
 func (p *DefaultPayload) Encode() error {
 	switch p.Encoding {
-	case JSON:
+	case tykenc.JSON:
 		j, err := json.Marshal(p.Message)
 		if err != nil {
 			return err
@@ -44,7 +45,7 @@ func (p *DefaultPayload) Encode() error {
 		return nil
 
 	default:
-		return errors.New("Encoding is not supported!")
+		return errors.New("encoding.Encoding is not supported!")
 	}
 
 	return nil
@@ -64,7 +65,7 @@ func (p *DefaultPayload) getBytes() ([]byte, error) {
 // DecodeMessage will decode the "message" component of the payload into an object
 func (p *DefaultPayload) DecodeMessage(into interface{}) error {
 	switch p.Encoding {
-	case JSON:
+	case tykenc.JSON:
 		// We are assuming a type here, not ideal
 		toDecode, bErr := p.getBytes()
 		if bErr != nil {
@@ -76,12 +77,12 @@ func (p *DefaultPayload) DecodeMessage(into interface{}) error {
 		}
 		return nil
 	default:
-		return errors.New("Encoding is not supported!")
+		return errors.New("encoding.Encoding is not supported!")
 	}
 	return nil
 }
 
-func (p *DefaultPayload) SetEncoding(enc Encoding) {
+func (p *DefaultPayload) SetEncoding(enc tykenc.Encoding) {
 	p.Encoding = enc
 }
 

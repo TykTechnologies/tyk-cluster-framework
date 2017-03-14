@@ -10,6 +10,7 @@ import (
 	"github.com/TykTechnologies/logrus"
 	"time"
 	"github.com/go-mangos/mangos/protocol/pub"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 type socketPayloadHandler struct {
@@ -45,7 +46,7 @@ type MangosClient struct {
 	URL string
 
 	sock 		mangos.Socket
-	encoding        Encoding
+	Encoding        encoding.Encoding
 	payloadHandlers socketMap
 	broadcastKillChans map[string]chan struct{}
 	SubscribeChan chan string
@@ -89,7 +90,7 @@ func (m *MangosClient) Publish(filter string, payload Payload) error {
 		return nil
 	}
 
-	data, encErr := Marshal(payload, m.encoding)
+	data, encErr := Marshal(payload, m.Encoding)
 	if encErr != nil {
 		return encErr
 	}
@@ -134,12 +135,19 @@ func (m *MangosClient) registerHandlerForChannel(socket mangos.Socket, filter st
 	}).Debugf("Done adding handler for: %v\n", filter)
 }
 
+func (m *MangosClient) notifySub(channel string) {
+	select {
+	case m.SubscribeChan <- channel:
+	default:
+	}
+}
 
 func (m *MangosClient) startListening(sock mangos.Socket, channel string) {
 	var msg []byte
 	var err error
 	log.Info("Listening on: ", channel)
-	m.SubscribeChan <- channel
+
+	m.notifySub(channel)
 
 	for {
 
@@ -159,7 +167,7 @@ func (m *MangosClient) startListening(sock mangos.Socket, channel string) {
 		_, handler, found := m.payloadHandlers.Get(channel)
 		if found {
 			log.Debug("Found handler for: ", channel)
-			handlingErr := m.HandleRawMessage(payload, handler, m.encoding)
+			handlingErr := m.HandleRawMessage(payload, handler, m.Encoding)
 			if handlingErr != nil {
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf.MangosClient",
@@ -192,8 +200,8 @@ func (m *MangosClient) Subscribe(filter string, handler PayloadHandler) (chan st
 	return m.SubscribeChan, nil
 }
 
-func (m *MangosClient) SetEncoding(enc Encoding) error {
-	m.encoding = enc
+func (m *MangosClient) SetEncoding(enc encoding.Encoding) error {
+	m.Encoding = enc
 	return nil
 }
 
