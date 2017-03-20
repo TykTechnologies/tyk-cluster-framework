@@ -6,6 +6,9 @@ import (
 	"errors"
 )
 
+// Marshal will call the correct marshallers for the payload, because payloads are double-encoded
+// (the payload format wraps the internal message payload, which is also encoded)
+// Currently JSON is the only supported marshaller
 func Marshal(from Payload, enc tykEnc.Encoding) (interface{}, error) {
 	switch enc {
 	case tykEnc.JSON:
@@ -15,6 +18,7 @@ func Marshal(from Payload, enc tykEnc.Encoding) (interface{}, error) {
 	}
 }
 
+// marshalJSON will
 func marshalJSON(from Payload) (interface{}, error) {
 	// Copy the object, we don;t want to operate on the same payload (NOT IDEAL)
 	newPayload := from.Copy()

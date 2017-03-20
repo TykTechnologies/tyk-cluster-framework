@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/TykTechnologies/logrus"
 	tykenc "github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"time"
 )
 
 // A payload is a type of object that can be used to send around a queue managed by TCF
@@ -14,6 +15,7 @@ type Payload interface {
 	DecodeMessage(interface{}) error
 	SetEncoding(tykenc.Encoding)
 	Copy() Payload
+	TimeStamp() time.Time
 }
 
 // DefaultPayload is the default payload that is used by TCF
@@ -22,6 +24,10 @@ type DefaultPayload struct {
 	Encoding tykenc.Encoding
 	Sig      string
 	Time     int64
+}
+
+func (p *DefaultPayload) TimeStamp() time.Time {
+	return time.Unix(p.Time, 0)
 }
 
 // Verify will check the signature if enabled

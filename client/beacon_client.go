@@ -4,24 +4,28 @@ import (
 	"errors"
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/client/beacon"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"gopkg.in/vmihailenco/msgpack.v2"
 	"runtime"
 	"sync"
 	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
+// payloadMap is a map that connects channel filter names to handlers so that
+// multiple payload handlers can be attached to a filter.
 type payloadMap struct {
 	mu              sync.RWMutex
 	payloadHandlers map[string]PayloadHandler
 }
 
+// Add a payload handler to a filter
 func (p *payloadMap) Add(filter string, handler PayloadHandler) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.payloadHandlers[filter] = handler
 }
 
+// Get a payload handler from a filter
 func (p *payloadMap) Get(filter string) (PayloadHandler, bool) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -30,10 +34,22 @@ func (p *payloadMap) Get(filter string) (PayloadHandler, bool) {
 	return handler, found
 }
 
+// BeaconClient is a wrapper around the beacon library \
+// for Gyre (https://github.com/zeromq/gyre/blob/master/beacon/beacon.go), the file has been
+// internalised here so that some modifications could be made.
+//
+// The BeaconClient will transmit a payload over UDP at a pre-defined interval, and can
+// support multiple filters and payload handlers, Beacon will only Subscribe and Broadcast,
+// the "Publish" method is not implemented because it would not make sense with regards to how
+// Beacon is implemented.
+//
+// BeaconClient is not compatible with Windows hosts (yet).
+//
+// For a usage example see the `examples/beacon_broadcast/beacon_example.go` file.
 type BeaconClient struct {
 	ClientHandler
-	Interval int
-	Port     int
+	Interval      int
+	Port          int
 	SubscribeChan chan string
 
 	beacon          *beacon.Beacon
@@ -44,21 +60,26 @@ type BeaconClient struct {
 	payloadHandlers payloadMap
 }
 
+// The default Beacon payload format, because we need to handle channel subscriptions manually.
 type BeaconTransmit struct {
 	Channel  string
 	Transmit []byte
 }
 
+// Stop will stop the client
 func (b *BeaconClient) Stop() error {
 	b.beacon.Close()
 	return nil
 }
 
+// Connect is not implemented
 func (b *BeaconClient) Connect() error {
 	// No op, UDP is passive
 	return nil
 }
 
+// Publish is not implemented because the underlying beacon
+// library is designed for broadcasting periodically. Use the `Broadcast` method instead.
 func (b *BeaconClient) Publish(filter string, p Payload) error {
 	return errors.New("Beacon only broadcasts and subscribes")
 }
@@ -120,6 +141,8 @@ func (b *BeaconClient) startListening(filter string) {
 	b.listening = false
 }
 
+// Subscribe enables you to add a payload handler to a chanel filter, so multiple functions
+// can be set against different channels. Wildcards are not supported.
 func (b *BeaconClient) Subscribe(filter string, handler PayloadHandler) (chan string, error) {
 	b.registerHandlerForChannel(filter, handler)
 
@@ -131,11 +154,14 @@ func (b *BeaconClient) Subscribe(filter string, handler PayloadHandler) (chan st
 	return b.SubscribeChan, nil
 }
 
+// SetEncoding Will set the encoding of the payloads to be sent and received.
 func (b *BeaconClient) SetEncoding(enc encoding.Encoding) error {
 	b.Encoding = enc
 	return nil
 }
 
+// Init initialises the `BeaconClient`, it is called automatically by `NewClient()`
+// if the prefix of the connection string is `beacon://`
 func (b *BeaconClient) Init(config interface{}) error {
 	if runtime.GOOS == "windows" {
 		log.Fatal("Beacon is not compatible with windows OS")
@@ -152,6 +178,7 @@ func (b *BeaconClient) Init(config interface{}) error {
 	return nil
 }
 
+// Broadcast will send the set payload via UDP every interval to the specified channel.
 func (b *BeaconClient) Broadcast(filter string, payload Payload, interval int) error {
 
 	if payload == nil {
@@ -215,7 +242,8 @@ func (b *BeaconClient) Broadcast(filter string, payload Payload, interval int) e
 
 }
 
-func (b *BeaconClient) StopBroadcast (f string) error {
+// StopBroadcast will stop the beacon broadcast.
+func (b *BeaconClient) StopBroadcast(f string) error {
 	b.beacon.Silence()
 	b.publishing = false
 	return nil

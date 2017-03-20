@@ -2,7 +2,6 @@ package client
 
 import (
 	"errors"
-	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
@@ -27,20 +26,4 @@ func (c ClientHandler) HandleRawMessage(rawMessage interface{}, payloadHandler P
 	// Call the registered handler
 	payloadHandler(asPayload)
 	return nil
-}
-
-// WrappedHandler returns a payload handler that includes the pre-processing step
-func (c ClientHandler) WrappedHandler(rawMessage interface{}, payloadHandler PayloadHandler, enc encoding.Encoding) PayloadHandler {
-
-	return func(payload Payload) {
-		// First, decode the message based on it's type and encoding.Encoding
-		msgHandler := NewMessageHandler()
-		asPayload, err := msgHandler.HandleRawMessage(rawMessage, enc)
-		if err != nil {
-			log.WithFields(logrus.Fields{
-				"prefix": "tcf",
-			}).Error("Payload decoding error: ", err)
-		}
-		payloadHandler(asPayload)
-	}
 }
