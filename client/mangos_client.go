@@ -2,19 +2,19 @@ package client
 
 import (
 	"errors"
-	"github.com/go-mangos/mangos"
-	"github.com/go-mangos/mangos/transport/tcp"
-	"github.com/go-mangos/mangos/protocol/sub"
 	"fmt"
-	"sync"
 	"github.com/TykTechnologies/logrus"
-	"time"
-	"github.com/go-mangos/mangos/protocol/pub"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/go-mangos/mangos"
+	"github.com/go-mangos/mangos/protocol/pub"
+	"github.com/go-mangos/mangos/protocol/sub"
+	"github.com/go-mangos/mangos/transport/tcp"
+	"sync"
+	"time"
 )
 
 type socketPayloadHandler struct {
-	socket mangos.Socket
+	socket  mangos.Socket
 	handler PayloadHandler
 }
 
@@ -28,7 +28,7 @@ func (p *socketMap) Add(socket mangos.Socket, filter string, handler PayloadHand
 	defer p.mu.Unlock()
 
 	p.payloadHandlers[filter] = &socketPayloadHandler{
-		socket: socket,
+		socket:  socket,
 		handler: handler,
 	}
 }
@@ -45,12 +45,11 @@ type MangosClient struct {
 	ClientHandler
 	URL string
 
-	sock 		mangos.Socket
-	Encoding        encoding.Encoding
-	payloadHandlers socketMap
+	sock               mangos.Socket
+	Encoding           encoding.Encoding
+	payloadHandlers    socketMap
 	broadcastKillChans map[string]chan struct{}
-	SubscribeChan chan string
-
+	SubscribeChan      chan string
 }
 
 func (m *MangosClient) Init(config interface{}) error {
@@ -65,7 +64,6 @@ func (m *MangosClient) Init(config interface{}) error {
 		return fmt.Errorf("can't get new socket: %s", err.Error())
 	}
 	m.sock.AddTransport(tcp.NewTransport())
-
 
 	return nil
 }
@@ -175,7 +173,6 @@ func (m *MangosClient) startListening(sock mangos.Socket, channel string) {
 			}
 		}
 
-
 	}
 
 }
@@ -218,17 +215,17 @@ func (m *MangosClient) Broadcast(filter string, payload Payload, interval int) e
 
 		for {
 			select {
-			case <- k:
+			case <-k:
 				// Kill broadcast
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf.MangosClient",
 				}).Info("Stopping broadcast on: ", f)
 				return
-			case <- ticker:
+			case <-ticker:
 
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf.MangosClient",
-				}).Debug ("Sending: ", p)
+				}).Debug("Sending: ", p)
 
 				if pErr := m.Publish(f, p); pErr != nil {
 					log.WithFields(logrus.Fields{
@@ -245,7 +242,7 @@ func (m *MangosClient) Broadcast(filter string, payload Payload, interval int) e
 	return nil
 }
 
-func (m *MangosClient) StopBroadcast (f string) error {
+func (m *MangosClient) StopBroadcast(f string) error {
 	killChan, found := m.broadcastKillChans[f]
 	if !found {
 		return errors.New("Filter not broadcasting")

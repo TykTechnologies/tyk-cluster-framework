@@ -2,8 +2,8 @@ package client
 
 import (
 	"encoding/json"
-	tykEnc "github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"errors"
+	tykEnc "github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 // Marshal will call the correct marshallers for the payload, because payloads are double-encoded

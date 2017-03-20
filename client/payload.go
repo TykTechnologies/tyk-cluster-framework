@@ -92,12 +92,12 @@ func (p *DefaultPayload) SetEncoding(enc tykenc.Encoding) {
 	p.Encoding = enc
 }
 
-func (p *DefaultPayload) Copy () Payload {
+func (p *DefaultPayload) Copy() Payload {
 	np := &DefaultPayload{
-		Message: p.Message,
+		Message:  p.Message,
 		Encoding: p.Encoding,
-		Sig: p.Sig,
-		Time: p.Time,
+		Sig:      p.Sig,
+		Time:     p.Time,
 	}
 
 	return np

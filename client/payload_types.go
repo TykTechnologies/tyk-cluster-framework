@@ -2,8 +2,8 @@ package client
 
 import (
 	"errors"
-	"time"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"time"
 )
 
 type PayloadType string

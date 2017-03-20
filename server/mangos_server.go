@@ -1,20 +1,20 @@
 package server
 
 import (
+	"errors"
+	"fmt"
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/pub"
 	"github.com/go-mangos/mangos/transport/tcp"
-	"fmt"
-	"errors"
 )
 
 type MangosServer struct {
 	listening bool
-	sock mangos.Socket
-	conf *MangosServerConf
-	encoding encoding.Encoding
+	sock      mangos.Socket
+	conf      *MangosServerConf
+	encoding  encoding.Encoding
 }
 
 type MangosServerConf struct {

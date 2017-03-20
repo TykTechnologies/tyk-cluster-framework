@@ -1,12 +1,11 @@
 package client
 
 import (
-	"testing"
-	"time"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"os"
+	"testing"
+	"time"
 )
-
 
 // If Redis is remote, can be set with an env variable: TCF_TEST_REDIS,
 // otherwise localhost assumed
@@ -15,10 +14,10 @@ func TestRedisClient(t *testing.T) {
 	if redisServer == "" {
 		redisServer = "localhost:9100"
 	}
-	cs := "redis://"+redisServer
+	cs := "redis://" + redisServer
 
 	// Test pub/sub
-	t.Run("Client Side Publish", func(t *testing.T){
+	t.Run("Client Side Publish", func(t *testing.T) {
 		var err error
 		var c Client
 
@@ -39,7 +38,8 @@ func TestRedisClient(t *testing.T) {
 		var subChan chan string
 		if subChan, err = c.Subscribe(ch, func(payload Payload) {
 			var d testPayloadData
-			err := payload.DecodeMessage(&d); if err != nil {
+			err := payload.DecodeMessage(&d)
+			if err != nil {
 				t.Fatalf("Decode payload failed: %v", err)
 			}
 
@@ -54,7 +54,7 @@ func TestRedisClient(t *testing.T) {
 		}
 
 		select {
-		case s := <- subChan:
+		case s := <-subChan:
 			if s != ch {
 				t.Fatal("Incorrect subscribe channel returned!")
 			}
@@ -67,7 +67,7 @@ func TestRedisClient(t *testing.T) {
 		}
 
 		select {
-		case v := <- resultChan:
+		case v := <-resultChan:
 			if v.FullName != msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
@@ -79,7 +79,7 @@ func TestRedisClient(t *testing.T) {
 	})
 
 	// Test multiple subs with a single client
-	t.Run("Multiple Client Side Subs", func(t *testing.T){
+	t.Run("Multiple Client Side Subs", func(t *testing.T) {
 		var err error
 		var c1 Client
 
@@ -102,7 +102,8 @@ func TestRedisClient(t *testing.T) {
 		var subChan chan string
 		if subChan, err = c1.Subscribe(ch1, func(payload Payload) {
 			var d testPayloadData
-			err := payload.DecodeMessage(&d); if err != nil {
+			err := payload.DecodeMessage(&d)
+			if err != nil {
 				t.Fatalf("Decode payload failed: %v", err)
 			}
 
@@ -114,7 +115,8 @@ func TestRedisClient(t *testing.T) {
 		// Subscribe to some stuff
 		if subChan, err = c1.Subscribe(ch2, func(payload Payload) {
 			var d testPayloadData
-			err := payload.DecodeMessage(&d); if err != nil {
+			err := payload.DecodeMessage(&d)
+			if err != nil {
 				t.Fatalf("Decode payload failed: %v", err)
 			}
 
@@ -134,7 +136,7 @@ func TestRedisClient(t *testing.T) {
 		}
 
 		select {
-		case s := <- subChan:
+		case s := <-subChan:
 			if s != ch1 && s != ch2 {
 				t.Fatalf("Incorrect subscribe channel returned: %v", s)
 			}
@@ -143,7 +145,7 @@ func TestRedisClient(t *testing.T) {
 		}
 
 		select {
-		case s := <- subChan:
+		case s := <-subChan:
 			if s != ch1 && s != ch2 {
 				t.Fatalf("Incorrect subscribe channel returned: %v", s)
 			}
@@ -160,7 +162,7 @@ func TestRedisClient(t *testing.T) {
 
 		// Inverted result channels here so we can test async
 		select {
-		case v := <- resultChan2:
+		case v := <-resultChan2:
 			if v.FullName != ch2Msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
@@ -169,7 +171,7 @@ func TestRedisClient(t *testing.T) {
 		}
 
 		select {
-		case v := <- resultChan1:
+		case v := <-resultChan1:
 			if v.FullName != ch1Msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
@@ -182,7 +184,7 @@ func TestRedisClient(t *testing.T) {
 
 	// Test multiple subscribes with one client, but ignore the subs notification channel
 	// because it might be unused for brevity
-	t.Run("Multiple Client Side Subs, but ignore sub channel", func(t *testing.T){
+	t.Run("Multiple Client Side Subs, but ignore sub channel", func(t *testing.T) {
 		var err error
 		var c1 Client
 
@@ -204,7 +206,8 @@ func TestRedisClient(t *testing.T) {
 		// Subscribe to some stuff
 		if _, err = c1.Subscribe(ch1, func(payload Payload) {
 			var d testPayloadData
-			err := payload.DecodeMessage(&d); if err != nil {
+			err := payload.DecodeMessage(&d)
+			if err != nil {
 				t.Fatalf("Decode payload failed: %v", err)
 			}
 
@@ -216,7 +219,8 @@ func TestRedisClient(t *testing.T) {
 		// Subscribe to some stuff
 		if _, err = c1.Subscribe(ch2, func(payload Payload) {
 			var d testPayloadData
-			err := payload.DecodeMessage(&d); if err != nil {
+			err := payload.DecodeMessage(&d)
+			if err != nil {
 				t.Fatalf("Decode payload failed: %v", err)
 			}
 
@@ -245,7 +249,7 @@ func TestRedisClient(t *testing.T) {
 		// Inverted result channels here so we can test async
 		// TImings must be longer because we have no subs confirmation
 		select {
-		case v := <- resultChan4:
+		case v := <-resultChan4:
 			if v.FullName != ch2Msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
@@ -254,7 +258,7 @@ func TestRedisClient(t *testing.T) {
 		}
 
 		select {
-		case v := <- resultChan3:
+		case v := <-resultChan3:
 			if v.FullName != ch1Msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}

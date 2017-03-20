@@ -1,9 +1,9 @@
 package client
 
 import (
-	"testing"
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"encoding/json"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"testing"
 	"time"
 )
 

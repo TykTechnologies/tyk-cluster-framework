@@ -80,6 +80,6 @@ func NewErrorNotFound(cause string) *ErrorResponse {
 }
 
 type LeaderResponse struct {
-	IsLeader bool `json:"is_leader"`
+	IsLeader bool   `json:"is_leader"`
 	LeaderIs string `json:"leader_is"`
 }

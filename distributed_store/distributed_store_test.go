@@ -2,13 +2,13 @@ package tcf
 
 import (
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
+	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty"
+	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/http"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/levigross/grequests"
 	"os"
 	"testing"
-	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty"
-	"github.com/levigross/grequests"
 	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/http"
 )
 
 func getClient() (client.Client, error) {
@@ -17,7 +17,7 @@ func getClient() (client.Client, error) {
 	if redisServer == "" {
 		redisServer = "localhost:9100"
 	}
-	cs := "redis://"+redisServer
+	cs := "redis://" + redisServer
 
 	c, err := client.NewClient(cs, encoding.JSON)
 	if err != nil {
@@ -39,7 +39,6 @@ func TestDistributedStore(t *testing.T) {
 	os.RemoveAll("./raft-test2")
 	os.RemoveAll("./raft-test3")
 
-
 	c1, err := getClient()
 	if err != nil {
 		t.Fatal(err)
@@ -54,29 +53,28 @@ func TestDistributedStore(t *testing.T) {
 	}
 
 	raft1 := &rafty.Config{
-		HttpServerAddr: "127.0.0.1:11100",
-		RaftServerAddress: "127.0.0.1:11200",
-		RaftDir: "./raft-test1",
+		HttpServerAddr:        "127.0.0.1:11100",
+		RaftServerAddress:     "127.0.0.1:11200",
+		RaftDir:               "./raft-test1",
 		RunInSingleServerMode: false,
-		ResetPeersOnLoad: true,
+		ResetPeersOnLoad:      true,
 	}
 
 	raft2 := &rafty.Config{
-		HttpServerAddr: "127.0.0.1:11101",
-		RaftServerAddress: "127.0.0.1:11201",
-		RaftDir: "./raft-test2",
+		HttpServerAddr:        "127.0.0.1:11101",
+		RaftServerAddress:     "127.0.0.1:11201",
+		RaftDir:               "./raft-test2",
 		RunInSingleServerMode: false,
-		ResetPeersOnLoad: true,
+		ResetPeersOnLoad:      true,
 	}
 
 	raft3 := &rafty.Config{
-		HttpServerAddr: "127.0.0.1:11102",
-		RaftServerAddress: "127.0.0.1:11202",
-		RaftDir: "./raft-test3",
+		HttpServerAddr:        "127.0.0.1:11102",
+		RaftServerAddress:     "127.0.0.1:11202",
+		RaftDir:               "./raft-test3",
 		RunInSingleServerMode: false,
-		ResetPeersOnLoad: true,
+		ResetPeersOnLoad:      true,
 	}
-
 
 	ds1, err := NewDistributedStore(raft1)
 	ds2, err := NewDistributedStore(raft2)
@@ -90,7 +88,7 @@ func TestDistributedStore(t *testing.T) {
 	ds3.Start("", c3)
 	time.Sleep(time.Second * 10)
 
-	t.Run("Is Leader Set Correctly", func(t *testing.T){
+	t.Run("Is Leader Set Correctly", func(t *testing.T) {
 		resp, err := grequests.Get("http://127.0.0.1:11100/leader", nil)
 		if err != nil {
 			t.Fatal(err)
@@ -116,4 +114,3 @@ func TestDistributedStore(t *testing.T) {
 	ds2.Stop()
 	ds3.Stop()
 }
-

@@ -1,9 +1,9 @@
 package server
 
 import (
-	"testing"
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"testing"
 )
 
 type testPayloadData struct {
@@ -20,7 +20,7 @@ func TestMangosServer(t *testing.T) {
 	s.Listen()
 
 	// Test pub/sub
-	t.Run("Client Side Connect", func(t *testing.T){
+	t.Run("Client Side Connect", func(t *testing.T) {
 		var err error
 		var c client.Client
 

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"time"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
@@ -14,6 +14,7 @@ type testPayloadData struct {
 }
 
 const FILTER string = "tcf.names"
+
 var tcfClient client.Client
 
 func main() {
@@ -57,7 +58,8 @@ func startBroadcast(Payload string) {
 	var err error
 
 	m := testPayloadData{FullName: Payload}
-	p, err = client.NewPayload(m); if err != nil {
+	p, err = client.NewPayload(m)
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -67,4 +69,3 @@ func startBroadcast(Payload string) {
 		log.Fatal(err)
 	}
 }
-

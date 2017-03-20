@@ -3,10 +3,10 @@ package client
 import (
 	"errors"
 	"github.com/TykTechnologies/logrus"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"net/url"
 	"strconv"
 	"strings"
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 // Client is a queue client managed by TCF

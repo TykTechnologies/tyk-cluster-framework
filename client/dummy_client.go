@@ -8,8 +8,8 @@ import (
 
 type DummyClient struct {
 	ClientHandler
-	Hostname string
-	Port     int
+	Hostname      string
+	Port          int
 	SubscribeChan chan string
 }
 
@@ -80,6 +80,6 @@ func (c *DummyClient) Broadcast(filter string, payload Payload, interval int) er
 
 }
 
-func (c *DummyClient) StopBroadcast (f string) error {
+func (c *DummyClient) StopBroadcast(f string) error {
 	return nil
 }

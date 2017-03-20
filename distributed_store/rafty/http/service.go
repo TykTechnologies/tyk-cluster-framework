@@ -141,7 +141,7 @@ func (s *Service) setPeers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) handleIsLeader(w http.ResponseWriter, r *http.Request) {
-	v := LeaderResponse {
+	v := LeaderResponse{
 		IsLeader: s.store.IsLeader(),
 		LeaderIs: s.store.Leader(),
 	}

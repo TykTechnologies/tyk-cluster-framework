@@ -3,20 +3,20 @@ package client
 import (
 	"errors"
 	"github.com/TykTechnologies/logrus"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"github.com/garyburd/redigo/redis"
 	"net/url"
 	"strings"
 	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 type RedisClient struct {
 	ClientHandler
-	URL      string
-	pool     *redis.Pool
-	Encoding encoding.Encoding
+	URL                string
+	pool               *redis.Pool
+	Encoding           encoding.Encoding
 	broadcastKillChans map[string]chan struct{}
-	SubscribeChan chan string
+	SubscribeChan      chan string
 }
 
 func (c *RedisClient) Init(config interface{}) error {
@@ -214,17 +214,17 @@ func (c *RedisClient) Broadcast(filter string, payload Payload, interval int) er
 
 		for {
 			select {
-			case <- k:
+			case <-k:
 				// Kill broadcast
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf.redisclient",
 				}).Info("Stopping broadcast on: ", f)
 				return
-			case <- ticker:
+			case <-ticker:
 
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf.redisclient",
-				}).Debug ("Sending: ", p)
+				}).Debug("Sending: ", p)
 
 				if pErr := c.Publish(f, p); pErr != nil {
 					log.WithFields(logrus.Fields{
@@ -241,7 +241,7 @@ func (c *RedisClient) Broadcast(filter string, payload Payload, interval int) er
 	return nil
 }
 
-func (c *RedisClient) StopBroadcast (f string) error {
+func (c *RedisClient) StopBroadcast(f string) error {
 	killChan, found := c.broadcastKillChans[f]
 	if !found {
 		return errors.New("Filter not broadcasting")
