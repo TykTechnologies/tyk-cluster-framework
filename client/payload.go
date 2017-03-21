@@ -3,9 +3,9 @@ package client
 import (
 	"encoding/json"
 	"errors"
-	"github.com/TykTechnologies/logrus"
 	tykenc "github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"time"
+	"fmt"
 )
 
 // A payload is a type of object that can be used to send around a queue managed by TCF
@@ -20,7 +20,9 @@ type Payload interface {
 
 // DefaultPayload is the default payload that is used by TCF
 type DefaultPayload struct {
-	Message  interface{}
+	Message interface{}
+	rawMessage  interface{}
+	RawMessage interface{}
 	Encoding tykenc.Encoding
 	Sig      string
 	Time     int64
@@ -32,9 +34,16 @@ func (p *DefaultPayload) TimeStamp() time.Time {
 
 // Verify will check the signature if enabled
 func (p *DefaultPayload) Verify() error {
-	log.WithFields(logrus.Fields{
-		"prefix": "tcf.defaultpayload",
-	}).Debug("TODO: Implement verification logic!")
+	if p.Message == nil {
+		return errors.New("No message to verify, Message is nil")
+	}
+
+	switch p.Message.(type) {
+	case []byte:
+		return TCFConfig.Verifier.Verify(p.Message.([]byte), p.Sig)
+	default:
+		return fmt.Errorf("Cannot verify payload because not a byte array: %v", p.Message)
+	}
 
 	return nil
 }
@@ -43,12 +52,15 @@ func (p *DefaultPayload) Verify() error {
 func (p *DefaultPayload) Encode() error {
 	switch p.Encoding {
 	case tykenc.JSON:
-		j, err := json.Marshal(p.Message)
+		j, err := json.Marshal(p.rawMessage)
 		if err != nil {
 			return err
 		}
-		p.Message = string(j)
-		return nil
+		p.Message = j
+
+		// Sign
+		p.Sig, err = TCFConfig.Verifier.Sign(j)
+		return err
 
 	default:
 		return errors.New("encoding.Encoding is not supported!")
@@ -95,6 +107,7 @@ func (p *DefaultPayload) SetEncoding(enc tykenc.Encoding) {
 func (p *DefaultPayload) Copy() Payload {
 	np := &DefaultPayload{
 		Message:  p.Message,
+		rawMessage: p.rawMessage,
 		Encoding: p.Encoding,
 		Sig:      p.Sig,
 		Time:     p.Time,

@@ -15,7 +15,7 @@ const (
 func NewPayload(msg interface{}) (Payload, error) {
 	switch TCFConfig.PayloadType {
 	case PayloadDefaultPayload:
-		return &DefaultPayload{Message: msg, Encoding: encoding.JSON, Time: time.Now().Unix()}, nil
+		return &DefaultPayload{rawMessage: msg, Encoding: encoding.JSON, Time: time.Now().Unix()}, nil
 	default:
 		return nil, errors.New("Payload type not supported")
 	}
