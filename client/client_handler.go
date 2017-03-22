@@ -1,8 +1,8 @@
 package client
 
 import (
-	"errors"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"fmt"
 )
 
 // ClientHandler provides helper functions and wrappers to decode a raw message into a payload object
@@ -19,8 +19,8 @@ func (c ClientHandler) HandleRawMessage(rawMessage interface{}, payloadHandler P
 		return err
 	}
 
-	if asPayload.Verify() != nil {
-		return errors.New("Payload verification failed")
+	if err = asPayload.Verify(); err != nil {
+		return fmt.Errorf("Payload verification failed: %v", err)
 	}
 
 	// Call the registered handler

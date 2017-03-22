@@ -20,12 +20,6 @@ func TestDefaultPayload(t *testing.T) {
 		}
 	})
 
-	t.Run("Verify (not encoded HMAC default)", func (t *testing.T) {
-		if err = p.Verify(); err == nil {
-			t.Fatal("Verification should fail when message is not encoded yet")
-		}
-	})
-
 	t.Run("Encode and Decode", func(t *testing.T){
 		if err = p.Encode(); err != nil {
 			t.Fatal(err)

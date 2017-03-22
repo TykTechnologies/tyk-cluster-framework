@@ -2,8 +2,7 @@ package verifier
 
 import (
 	"testing"
-	"github.com/TykTechnologies/tyk-cluster-framework/client"
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"encoding/json"
 )
 
 type testPayloadData struct {
@@ -21,13 +20,9 @@ func TestHMAC256(t *testing.T) {
 		FullName: "foo",
 	}
 
-	p, err := client.NewPayload(rawMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	var val interface{}
-	val, err = client.Marshal(p, encoding.JSON)
+	val, err = json.Marshal(rawMessage)
 
 	if err != nil {
 		t.Fatal(err)

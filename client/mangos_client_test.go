@@ -11,6 +11,8 @@ type testPayloadData struct {
 	FullName string
 }
 
+var forceSequential chan bool = make(chan bool, 1)
+
 func TestMangosClient(t *testing.T) {
 	var s server.Server
 	var err error
@@ -22,6 +24,7 @@ func TestMangosClient(t *testing.T) {
 
 	// Test pub/sub
 	t.Run("Client Side Publish", func(t *testing.T) {
+		forceSequential <- true
 		var err error
 		var c Client
 
@@ -83,10 +86,12 @@ func TestMangosClient(t *testing.T) {
 
 		c.Stop()
 		close(resultChan)
+		<- forceSequential
 	})
 
 	// Test multiple subs with a single client
 	t.Run("Multiple Client Side Subs", func(t *testing.T) {
+		forceSequential <- true
 		var err error
 		var c1 Client
 
@@ -191,13 +196,13 @@ func TestMangosClient(t *testing.T) {
 		c1.Stop()
 
 		time.Sleep(time.Millisecond * 100)
-		close(resultChan1)
-		close(resultChan2)
+		<- forceSequential
 	})
 
 	// Test multiple subscribes with one client, but ignore the subs notification channel
 	// because it might be unused for brevity
 	t.Run("Multiple Client Side Subs, but ignore sub channel", func(t *testing.T) {
+		forceSequential <- true
 		var err error
 		var c1 Client
 
@@ -289,5 +294,6 @@ func TestMangosClient(t *testing.T) {
 	if err = s.Stop(); err != nil {
 		t.Fatal(err)
 	}
+	<- forceSequential
 
 }

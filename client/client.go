@@ -31,27 +31,6 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 
 	transport := parts[0]
 	switch transport {
-	case "dummy":
-		log.WithFields(logrus.Fields{
-			"prefix": "tcf",
-		}).Info("Using dummy back-end")
-		connParts := strings.Split(parts[1], ":")
-		if len(connParts) > 2 {
-			return nil, errors.New("Detected IPv6 address, this is not supported yet")
-		}
-
-		portAsInt, convErr := strconv.Atoi(connParts[1])
-		if convErr != nil {
-			return nil, convErr
-		}
-
-		c := &DummyClient{
-			Hostname: connParts[0],
-			Port:     portAsInt,
-		}
-		c.SetEncoding(baselineEncoding)
-		c.Init(nil)
-		return c, nil
 	case "redis":
 		log.WithFields(logrus.Fields{
 			"prefix": "tcf",

@@ -17,13 +17,6 @@ func TestHandleRawMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Here we could just use the `Marshal` function,
-	// but that's covered in a different test
-	err = pl.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	asByte, err := json.Marshal(pl)
 	if err != nil {
 		t.Fatal(err)

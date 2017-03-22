@@ -3,11 +3,13 @@ package client
 import (
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"testing"
+	"strings"
+	"runtime"
+	"fmt"
 )
 
 func TestNewClient(t *testing.T) {
 	ctypes := []string{
-		"dummy://foo:bar@localhost:54321/",
 		"redis://foo:bar@localhost:6379/",
 		"beacon://foo:bar@localhost:54321/",
 		"mangos://foo:bar@localhost:54321/",
@@ -23,12 +25,17 @@ func TestNewClient(t *testing.T) {
 
 	// Valid connection strings for back-ends
 	for _, cs := range ctypes {
-		t.Run("Valid c-string: "+cs, func(t *testing.T) {
-			var err error
-			if _, err = NewClient(cs, encoding.JSON); err != nil {
-				t.Fatal(err)
-			}
-		})
+		if strings.Contains(cs, "beacon") && runtime.GOOS == "windows" {
+			// Beacon doesn't work on windows
+			fmt.Println("Skipping beacon test on windows")
+		} else {
+			t.Run("Valid c-string: "+cs, func(t *testing.T) {
+				var err error
+				if _, err = NewClient(cs, encoding.JSON); err != nil {
+					t.Fatal(err)
+				}
+			})
+		}
 	}
 
 	// Invalid CS strings for error handling

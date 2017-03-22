@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
-	"fmt"
 )
 
 type HMAC256 struct{
@@ -28,6 +27,8 @@ func (h *HMAC256) Init(config interface{}) error {
 func (h *HMAC256) Verify(message []byte, signature string) error {
 	computedSig, _ := h.Sign(message)
 	if computedSig != signature {
+		//fmt.Println(computedSig)
+		//fmt.Println(signature)
 		return VerificationFailed
 	}
 

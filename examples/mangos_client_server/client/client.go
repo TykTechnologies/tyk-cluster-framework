@@ -29,7 +29,7 @@ func main() {
 	}
 
 	// Subscribe to some stuff
-	tcfClient.Subscribe(CHANNAME, func(payload client.Payload) {
+	s, subErr := tcfClient.Subscribe(CHANNAME, func(payload client.Payload) {
 		var d testPayloadData
 		if decErr := payload.DecodeMessage(&d);  decErr != nil {
 			log.Fatalf("Decode payload failed: %v was: %v\n", decErr, payload)
@@ -38,10 +38,24 @@ func main() {
 		fmt.Printf("RECEIVED: %v\n", d.FullName)
 	})
 
+	if subErr != nil {
+		log.Fatal(subErr)
+	}
+
+	select {
+	case v := <-s:
+		if v != CHANNAME {
+			log.Fatal("Incorrect subscribe channel returned!")
+		}
+	case <-time.After(time.Millisecond * 500):
+		log.Fatalf("Channel wait timed out")
+	}
+
 	go sendTestMessages("Foo")
 
+
 	// The above does not block, so lets wait so we can get all the messages
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 }
 
 func sendTestMessages(Payload string) {

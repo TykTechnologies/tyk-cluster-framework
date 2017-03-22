@@ -76,6 +76,7 @@ func TestRedisClient(t *testing.T) {
 		}
 
 		c.Stop()
+		time.Sleep(time.Millisecond * 200)
 	})
 
 	// Test multiple subs with a single client
@@ -180,6 +181,8 @@ func TestRedisClient(t *testing.T) {
 		}
 
 		c1.Stop()
+		time.Sleep(time.Millisecond * 200)
+
 	})
 
 	// Test multiple subscribes with one client, but ignore the subs notification channel
@@ -239,21 +242,26 @@ func TestRedisClient(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		// We need to wait for the subs to be ready
+		time.Sleep(1 * time.Second)
 		if err = c1.Publish(ch1, dpChan1); err != nil {
 			t.Fatal(err)
 		}
+
+		// We need to wait for the subs to be ready
+		time.Sleep(1 * time.Second)
 		if err = c1.Publish(ch2, dpChan2); err != nil {
 			t.Fatal(err)
 		}
 
 		// Inverted result channels here so we can test async
-		// TImings must be longer because we have no subs confirmation
+		// Timings must be longer because we have no subs confirmation
 		select {
 		case v := <-resultChan4:
 			if v.FullName != ch2Msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
-		case <-time.After(time.Second * 5):
+		case <-time.After(time.Second * 10):
 			t.Fatalf("Chan 2 timed out")
 		}
 
@@ -262,11 +270,13 @@ func TestRedisClient(t *testing.T) {
 			if v.FullName != ch1Msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
-		case <-time.After(time.Second * 5):
+		case <-time.After(time.Second * 10):
 			t.Fatalf("Chan 1 timed out")
 		}
 
 		c1.Stop()
+		time.Sleep(time.Millisecond * 100)
+
 	})
 
 }

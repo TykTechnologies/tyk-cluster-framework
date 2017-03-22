@@ -22,7 +22,6 @@ type Payload interface {
 type DefaultPayload struct {
 	Message interface{}
 	rawMessage  interface{}
-	RawMessage interface{}
 	Encoding tykenc.Encoding
 	Sig      string
 	Time     int64
@@ -41,8 +40,10 @@ func (p *DefaultPayload) Verify() error {
 	switch p.Message.(type) {
 	case []byte:
 		return TCFConfig.Verifier.Verify(p.Message.([]byte), p.Sig)
+	case string:
+		return TCFConfig.Verifier.Verify([]byte(p.Message.(string)), p.Sig)
 	default:
-		return fmt.Errorf("Cannot verify payload because not a byte array: %v", p.Message)
+		return fmt.Errorf("Cannot verify payload because not a byte array or string: %v", p.Message)
 	}
 
 	return nil
@@ -56,7 +57,7 @@ func (p *DefaultPayload) Encode() error {
 		if err != nil {
 			return err
 		}
-		p.Message = j
+		p.Message = string(j)
 
 		// Sign
 		p.Sig, err = TCFConfig.Verifier.Sign(j)

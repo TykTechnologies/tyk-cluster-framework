@@ -20,7 +20,7 @@ var tcfClient client.Client
 func main() {
 	// Create a client
 	var err error
-	if tcfClient, err = client.NewClient("beacon://localhost:9898?interval=1", encoding.JSON); tErr != nil {
+	if tcfClient, err = client.NewClient("beacon://localhost:9898?interval=1", encoding.JSON); err != nil {
 		log.Fatal(err)
 	}
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/TykTechnologies/tyk-cluster-framework/client"
 	"github.com/TykTechnologies/tyk-cluster-framework/server"
 	"log"
 	"time"
