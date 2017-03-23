@@ -5,7 +5,6 @@ env:
     - TYK_LOGLEVEL=info
 
 go:
-  - 1.7.x
   - 1.8
 
 services:
