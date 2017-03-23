@@ -14,5 +14,7 @@ install:
   - go get -v ./...
   - go install ./...
 
-script: ./test.sh
+script: 
+  - chmod +x ./test.sh
+  - ./test.sh
 
