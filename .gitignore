@@ -2,3 +2,5 @@ TODO.md
 distributed_store/raft-test1
 distributed_store/raft-test2
 distributed_store/raft-test3
+docker/
+*.ps1

@@ -1,0 +1,193 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "C7gtyz3E3AqJVC3vGJP7v2Q33Hg=",
+			"path": "github.com/TykTechnologies/logrus",
+			"revision": "55ff0f4b9b3de929d99bad783723811ff7add9b6",
+			"revisionTime": "2016-12-01T17:12:39Z"
+		},
+		{
+			"checksumSHA1": "xIq5uj5CzOoqr2MXhoq+Le4iaY8=",
+			"path": "github.com/TykTechnologies/logrus-prefixed-formatter",
+			"revision": "85209afb73a644d3e53cf08a6d0d101f349004a9",
+			"revisionTime": "2016-12-01T17:11:21Z"
+		},
+		{
+			"checksumSHA1": "GvjUf4roQySScpjXIPpg7RsqE4k=",
+			"path": "github.com/TykTechnologies/tykcommon-logger",
+			"revision": "7bae07354ebad4c0feff3617b9f530af9b0c3aa9",
+			"revisionTime": "2016-12-01T17:11:51Z"
+		},
+		{
+			"checksumSHA1": "6HjBxlrYOUnFZo6jPok9ZfQZ/dM=",
+			"path": "github.com/armon/go-metrics",
+			"revision": "97c69685293dce4c0a2d0b19535179bbc976e4d2",
+			"revisionTime": "2016-11-05T01:02:38Z"
+		},
+		{
+			"checksumSHA1": "nBhBtI5wOm4+vOD4xZbWbE3FlZM=",
+			"path": "github.com/boltdb/bolt",
+			"revision": "a705895fdad108f053eae7ee011ed94a0541ee13",
+			"revisionTime": "2016-12-28T23:26:56Z"
+		},
+		{
+			"checksumSHA1": "i4eiDCRMdzONUGl/FgZqCljx7ew=",
+			"path": "github.com/foize/go.fifo",
+			"revision": "3a04cfeec12143459af4c62b147b365e950051c9",
+			"revisionTime": "2013-03-27T14:41:50Z"
+		},
+		{
+			"checksumSHA1": "2UmMbNHc8FBr98mJFN1k8ISOIHk=",
+			"path": "github.com/garyburd/redigo/internal",
+			"revision": "80f7de34463b0ed3d7c61303e5619efe1b227f92",
+			"revisionTime": "2016-10-24T01:47:02Z"
+		},
+		{
+			"checksumSHA1": "qqi0xwKRUSRkYMFZcqWSS/4YAjA=",
+			"path": "github.com/garyburd/redigo/redis",
+			"revision": "80f7de34463b0ed3d7c61303e5619efe1b227f92",
+			"revisionTime": "2016-10-24T01:47:02Z"
+		},
+		{
+			"checksumSHA1": "D2bvrU0JCzjSOk/XZRE2qzOFI7o=",
+			"path": "github.com/go-mangos/mangos",
+			"revision": "2e75342da0929bc0d8a7eabdd8c12102dcedb070",
+			"revisionTime": "2017-01-30T19:11:53Z"
+		},
+		{
+			"checksumSHA1": "OdtHbMi8ar7XtTmjzOTcpxaSNXo=",
+			"path": "github.com/go-mangos/mangos/protocol/pub",
+			"revision": "2e75342da0929bc0d8a7eabdd8c12102dcedb070",
+			"revisionTime": "2017-01-30T19:11:53Z"
+		},
+		{
+			"checksumSHA1": "vN9oWDsOTIcgkFwSlzbIClyoU/w=",
+			"path": "github.com/go-mangos/mangos/protocol/sub",
+			"revision": "2e75342da0929bc0d8a7eabdd8c12102dcedb070",
+			"revisionTime": "2017-01-30T19:11:53Z"
+		},
+		{
+			"checksumSHA1": "LdkRqfaCeiszPKHznmu5LWQHqiY=",
+			"path": "github.com/go-mangos/mangos/transport/tcp",
+			"revision": "2e75342da0929bc0d8a7eabdd8c12102dcedb070",
+			"revisionTime": "2017-01-30T19:11:53Z"
+		},
+		{
+			"checksumSHA1": "p3IB18uJRs4dL2K5yx24MrLYE9A=",
+			"path": "github.com/google/go-querystring/query",
+			"revision": "53e6ce116135b80d037921a7fdd5138cf32d7a8a",
+			"revisionTime": "2017-01-11T10:11:55Z"
+		},
+		{
+			"checksumSHA1": "g/V4qrXjUGG9B+e3hB+4NAYJ5Gs=",
+			"path": "github.com/gorilla/context",
+			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
+			"revisionTime": "2016-08-17T18:46:32Z"
+		},
+		{
+			"checksumSHA1": "urMd7A9QPAJYY0GZJL9qBhlUmD8=",
+			"path": "github.com/gorilla/mux",
+			"revision": "757bef944d0f21880861c2dd9c871ca543023cba",
+			"revisionTime": "2016-09-20T23:08:13Z"
+		},
+		{
+			"checksumSHA1": "aeNt5+WZd7yhD1Di2Rkojj2SUFk=",
+			"path": "github.com/gorilla/schema",
+			"revision": "0164a00ab4cd01d814d8cd5bf63fd9fcea30e23b",
+			"revisionTime": "2016-08-17T19:01:22Z"
+		},
+		{
+			"checksumSHA1": "TNlVzNR1OaajcNi3CbQ3bGbaLGU=",
+			"path": "github.com/hashicorp/go-msgpack/codec",
+			"revision": "fa3f63826f7c23912c15263591e65d54d080b458",
+			"revisionTime": "2015-05-18T23:42:57Z"
+		},
+		{
+			"checksumSHA1": "ZpqwBCoIc/KpD6F75ffK7lyAgd4=",
+			"path": "github.com/hashicorp/raft",
+			"revision": "5f09c4ffdbcd2a53768e78c47717415de12b6728",
+			"revisionTime": "2016-08-24T02:31:12Z"
+		},
+		{
+			"checksumSHA1": "OA3c4+MsJ5Ccub32fXR6jPeij+M=",
+			"path": "github.com/hashicorp/raft-boltdb",
+			"revision": "a8adffd05b79e3d8b1817d46bbe387a112265b3e",
+			"revisionTime": "2016-09-13T16:36:00Z"
+		},
+		{
+			"checksumSHA1": "HQyF/udmxQQia0zz3shOIKJZw5w=",
+			"path": "github.com/levigross/grequests",
+			"revision": "48a10ca31a1f20c6c21f9bc0ce7a7c74030b8c79",
+			"revisionTime": "2017-02-19T00:57:21Z"
+		},
+		{
+			"checksumSHA1": "hBgLmZ/4mCxmnH88mqFKBkpJFUY=",
+			"path": "github.com/mgutz/ansi",
+			"revision": "c286dcecd19ff979eeb73ea444e479b903f2cfcb",
+			"revisionTime": "2015-09-14T16:22:38Z"
+		},
+		{
+			"checksumSHA1": "gcLub3oB+u4QrOJZcYmk/y2AP4k=",
+			"path": "github.com/nu7hatch/gouuid",
+			"revision": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3",
+			"revisionTime": "2013-12-21T20:05:32Z"
+		},
+		{
+			"checksumSHA1": "9Pcc1IiRqPxEcxU2KMpkrcEGb3k=",
+			"path": "golang.org/x/net/bpf",
+			"revision": "b4690f45fa1cafc47b1c280c2e75116efe40cc13",
+			"revisionTime": "2017-02-15T08:41:58Z"
+		},
+		{
+			"checksumSHA1": "ph4zMZHCWvSjVOZwoxbks+nG0/M=",
+			"path": "golang.org/x/net/internal/iana",
+			"revision": "b4690f45fa1cafc47b1c280c2e75116efe40cc13",
+			"revisionTime": "2017-02-15T08:41:58Z"
+		},
+		{
+			"checksumSHA1": "IsIplOA4+ufkOT1cYQ4psg/OCqc=",
+			"path": "golang.org/x/net/internal/netreflect",
+			"revision": "b4690f45fa1cafc47b1c280c2e75116efe40cc13",
+			"revisionTime": "2017-02-15T08:41:58Z"
+		},
+		{
+			"checksumSHA1": "DVuL0YTpk4E8bRxkr2KXgzoCxw8=",
+			"path": "golang.org/x/net/ipv4",
+			"revision": "b4690f45fa1cafc47b1c280c2e75116efe40cc13",
+			"revisionTime": "2017-02-15T08:41:58Z"
+		},
+		{
+			"checksumSHA1": "jeytZwCJnLNoYKpiQd+Q6agLP6E=",
+			"path": "golang.org/x/net/ipv6",
+			"revision": "b4690f45fa1cafc47b1c280c2e75116efe40cc13",
+			"revisionTime": "2017-02-15T08:41:58Z"
+		},
+		{
+			"checksumSHA1": "kEO69MIsqWDxBOIs3ez1faofNSg=",
+			"path": "golang.org/x/net/publicsuffix",
+			"revision": "b4690f45fa1cafc47b1c280c2e75116efe40cc13",
+			"revisionTime": "2017-02-15T08:41:58Z"
+		},
+		{
+			"checksumSHA1": "KqecwXo3OO+p4N+E9RhlHvl9I+w=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "b699b7032584f0953262cb2788a0ca19bb494703",
+			"revisionTime": "2016-11-10T11:58:56Z"
+		},
+		{
+			"checksumSHA1": "auzS48O3vpr/7Yr2GEZZPQKjfhU=",
+			"path": "gopkg.in/vmihailenco/msgpack.v2",
+			"revision": "200315d5c8aab339f5a5cd44219f4b50ad0782df",
+			"revisionTime": "2016-11-14T09:30:20Z"
+		},
+		{
+			"checksumSHA1": "KqVHe5SB85yaDcseNq2CogozjRk=",
+			"path": "gopkg.in/vmihailenco/msgpack.v2/codes",
+			"revision": "200315d5c8aab339f5a5cd44219f4b50ad0782df",
+			"revisionTime": "2016-11-14T09:30:20Z"
+		}
+	],
+	"rootPath": "github.com/TykTechnologies/tyk-cluster-framework"
+}
