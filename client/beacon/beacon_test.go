@@ -9,14 +9,16 @@ import (
 	"time"
 	//"runtime"
 	//"fmt"
+	"runtime"
+	"fmt"
 )
 
 func TestBeacon(t *testing.T) {
 
-	//if runtime.GOOS == "windows" {
-	//	fmt.Println("Beacon tests skipped on windows")
-	//	return
-	//}
+	if runtime.GOOS == "windows" {
+		fmt.Println("Beacon tests skipped on windows")
+		return
+	}
 
 	transmit := []byte("SAMPLE-BEACON")
 	b := New()

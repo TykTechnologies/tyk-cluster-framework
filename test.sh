@@ -9,6 +9,10 @@ echo "Testing client/"
 cd client
 go test -v
 cd ..
+echo "Testing client/beacon"
+cd beacon
+go test -v
+cd ../..
 echo "Testing server/"
 cd server
 go test -v

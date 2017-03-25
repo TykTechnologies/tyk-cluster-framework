@@ -116,17 +116,30 @@ func (b *BeaconClient) handleBeaconMessage(s *beacon.Signal) {
 func (b *BeaconClient) startListening(filter string) {
 	b.beacon.Subscribe([]byte{})
 	b.listening = true
-	b.SubscribeChan <- filter
-	log.WithFields(logrus.Fields{
-		"prefix": "tcf.beaconclient",
-	}).Debug("Listening")
-	for {
-		s := <-b.beacon.Signals()
-		signal := s.(*beacon.Signal)
+
+	select {
+	case b.SubscribeChan <- filter:
 		log.WithFields(logrus.Fields{
 			"prefix": "tcf.beaconclient",
-		}).Debug("Message received!")
-		b.handleBeaconMessage(signal)
+		}).Info("Subscription notification sent")
+	default:
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.beaconclient",
+		}).Debug("Subscription notification failed to send, continuing")
+	}
+
+	log.WithFields(logrus.Fields{
+		"prefix": "tcf.beaconclient",
+	}).Info("Listening")
+
+	for {
+		s := <-b.beacon.Signals()
+		if s != nil {
+			log.WithFields(logrus.Fields{
+				"prefix": "tcf.beaconclient",
+			}).Info("Message received: ", string(s.(*beacon.Signal).Transmit))
+			b.handleBeaconMessage(s.(*beacon.Signal))
+		}
 
 		//select {
 		//// TODO: Stop
@@ -134,6 +147,7 @@ func (b *BeaconClient) startListening(filter string) {
 		//	signal := s.(*beacon.Signal)
 		//	b.handleBeaconMessage(signal)
 		//}
+
 	}
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.beaconclient",
@@ -231,6 +245,7 @@ func (b *BeaconClient) Broadcast(filter string, payload Payload, interval int) e
 		return nil
 	}
 
+	log.Info("Publishing")
 	pubErr := b.beacon.Publish(wrappedSend)
 	if pubErr != nil {
 		return pubErr
