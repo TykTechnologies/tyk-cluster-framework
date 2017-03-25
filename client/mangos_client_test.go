@@ -2,24 +2,25 @@ package client
 
 import (
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
-	"github.com/TykTechnologies/tyk-cluster-framework/server"
 	"testing"
 	"time"
+	"github.com/TykTechnologies/tyk-cluster-framework/server"
 )
 
 type testPayloadData struct {
 	FullName string
 }
 
-
 func TestMangosClient(t *testing.T) {
 	var s server.Server
 	var err error
-	if s, err = server.NewServer("mangos://0.0.0.0:9100", encoding.JSON); err != nil {
+	if s, err = server.NewServer("mangos://127.0.0.1:9100", encoding.JSON); err != nil {
 		t.Fatal(err)
 	}
 
 	s.Listen()
+
+	time.Sleep(1 * time.Second)
 
 	// Test pub/sub
 	t.Run("Client Side Publish", func(t *testing.T) {
@@ -39,6 +40,7 @@ func TestMangosClient(t *testing.T) {
 			t.Fatal(err)
 		}
 
+
 		// Subscribe to some stuff
 		var subChan chan string
 		if subChan, err = c.Subscribe(ch, func(payload Payload) {
@@ -50,7 +52,7 @@ func TestMangosClient(t *testing.T) {
 
 			resultChan <- d
 		}); err != nil {
-			t.Fatal("err")
+			t.Fatal(err)
 		}
 
 		var dp Payload
@@ -63,12 +65,15 @@ func TestMangosClient(t *testing.T) {
 			if s != ch {
 				t.Fatal("Incorrect subscribe channel returned!")
 			}
-		case <-time.After(time.Millisecond * 100):
+		case <-time.After(time.Millisecond * 500):
 			t.Fatalf("Channel wait timed out")
 		}
 
+
+		time.Sleep(1 * time.Second)
+
+
 		// This is ugly, but mangos handles connect in the background, so we need to wait :-/
-		time.Sleep(time.Millisecond * 100)
 		if err = c.Publish(ch, dp); err != nil {
 			t.Fatal(err)
 		}
@@ -78,11 +83,12 @@ func TestMangosClient(t *testing.T) {
 			if v.FullName != msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
-		case <-time.After(time.Millisecond * 100):
+		case <-time.After(time.Second * 3):
 			t.Fatalf("Timed out")
 		}
 
 		c.Stop()
+		time.Sleep(1 * time.Second)
 		close(resultChan)
 	})
 
@@ -162,7 +168,7 @@ func TestMangosClient(t *testing.T) {
 		}
 
 		// This is ugly, but mangos handles connect in the background, so we need to wait :-/
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(1 * time.Second)
 		if err = c1.Publish(ch1, dpChan1); err != nil {
 			t.Fatal(err)
 		}
@@ -176,7 +182,7 @@ func TestMangosClient(t *testing.T) {
 			if v.FullName != ch2Msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
-		case <-time.After(time.Millisecond * 100):
+		case <-time.After(time.Millisecond * 500):
 			t.Fatalf("Chan 2 timed out")
 		}
 
@@ -185,17 +191,17 @@ func TestMangosClient(t *testing.T) {
 			if v.FullName != ch1Msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
-		case <-time.After(time.Millisecond * 100):
+		case <-time.After(time.Millisecond * 500):
 			t.Fatalf("Chan 1 timed out")
 		}
 
 		c1.Stop()
 
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(1 * time.Second)
 	})
 
-	// Test multiple subscribes with one client, but ignore the subs notification channel
-	// because it might be unused for brevity
+	//// Test multiple subscribes with one client, but ignore the subs notification channel
+	//// because it might be unused for brevity
 	t.Run("Multiple Client Side Subs, but ignore sub channel", func(t *testing.T) {
 		var err error
 		var c1 Client
@@ -252,7 +258,8 @@ func TestMangosClient(t *testing.T) {
 		}
 
 		// This is ugly, but mangos handles connect in the background, so we need to wait :-/
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(1 * time.Second)
+
 		if err = c1.Publish(ch1, dpChan1); err != nil {
 			t.Fatal(err)
 		}
@@ -266,7 +273,7 @@ func TestMangosClient(t *testing.T) {
 			if v.FullName != ch2Msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
-		case <-time.After(time.Millisecond * 100):
+		case <-time.After(time.Millisecond * 500):
 			t.Fatalf("Chan 2 timed out")
 		}
 
@@ -275,7 +282,7 @@ func TestMangosClient(t *testing.T) {
 			if v.FullName != ch1Msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
-		case <-time.After(time.Millisecond * 100):
+		case <-time.After(time.Millisecond * 500):
 			t.Fatalf("Chan 1 timed out")
 		}
 
@@ -285,6 +292,7 @@ func TestMangosClient(t *testing.T) {
 	})
 
 	// Test stop
+	time.Sleep(1 * time.Second)
 	if err = s.Stop(); err != nil {
 		t.Fatal(err)
 	}

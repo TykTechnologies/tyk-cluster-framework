@@ -18,6 +18,7 @@ type Server interface {
 	SetEncoding(encoding.Encoding) error
 	Init(interface{}) error
 	Stop() error
+	Connections() []string
 }
 
 // NewServer will generate a new server object based on the enum provided.
@@ -29,11 +30,6 @@ func NewServer(connectionString string, baselineEncoding encoding.Encoding) (Ser
 
 	transport := parts[0]
 	switch transport {
-	case "dummy":
-		s := &DummyServer{}
-		s.SetEncoding(baselineEncoding)
-		s.Init(nil)
-		return s, nil
 	case "mangos":
 		s := &MangosServer{}
 		s.SetEncoding(baselineEncoding)
@@ -41,8 +37,6 @@ func NewServer(connectionString string, baselineEncoding encoding.Encoding) (Ser
 		s.Init(newMangoConfig(url))
 		return s, nil
 	default:
-		s := &DummyServer{}
-		s.SetEncoding(baselineEncoding)
-		return s, nil
+		return nil, errors.New("Server scheme not supported.")
 	}
 }

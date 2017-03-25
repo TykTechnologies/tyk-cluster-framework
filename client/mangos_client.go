@@ -11,6 +11,8 @@ import (
 	"github.com/go-mangos/mangos/transport/tcp"
 	"sync"
 	"time"
+	"net/url"
+	"strconv"
 )
 
 type socketPayloadHandler struct {
@@ -45,7 +47,7 @@ type MangosClient struct {
 	ClientHandler
 	URL string
 
-	sock               mangos.Socket
+	pubSock 	   mangos.Socket
 	Encoding           encoding.Encoding
 	payloadHandlers    socketMap
 	broadcastKillChans map[string]chan struct{}
@@ -59,28 +61,38 @@ func (m *MangosClient) Init(config interface{}) error {
 		payloadHandlers: make(map[string]*socketPayloadHandler),
 	}
 
-	var err error
-	if m.sock, err = pub.NewSocket(); err != nil {
-		return fmt.Errorf("can't get new socket: %s", err.Error())
-	}
-	m.sock.AddTransport(tcp.NewTransport())
+	//var err error
+	//if m.sock, err = pub.NewSocket(); err != nil {
+	//	return fmt.Errorf("can't get new socket: %s", err.Error())
+	//}
+	//m.sock.AddTransport(tcp.NewTransport())
 
 	return nil
 }
 
 func (m *MangosClient) Connect() error {
-	var err error
-	if err = m.sock.Listen(m.URL); err != nil {
-		return fmt.Errorf("can't dial on socket: %s", err.Error())
-	}
+	//var err error
 
-	log.Info("Connected! ", m.URL)
+	m.startMessagePublisher()
+
+	//if err = m.sock.Dial(m.URL); err != nil {
+	//	return fmt.Errorf("can't dial on socket: %s", err.Error())
+	//}
 
 	return nil
 }
 
 func (m *MangosClient) Stop() error {
-	return m.sock.Close()
+	var err error
+	//if err = m.sock.Close(); err != nil {
+	//	return err
+	//}
+
+	if err = m.pubSock.Close(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m *MangosClient) Publish(filter string, payload Payload) error {
@@ -109,12 +121,16 @@ func (m *MangosClient) Publish(filter string, payload Payload) error {
 
 	if len(asPayload) == 0 {
 		log.WithFields(logrus.Fields{
-			"prefix": "tcf.mangos-server",
+			"prefix": "tcf.MangosClient",
 		}).Error("No data to send, not sending")
 		return nil
 	}
 
-	if pubErr := m.sock.Send(asPayload); pubErr != nil {
+	if m.pubSock == nil {
+		return errors.New("Publisher not initialised")
+	}
+
+	if pubErr := m.pubSock.Send(asPayload); pubErr != nil {
 		return fmt.Errorf("Failed publishing: %s", pubErr.Error())
 	}
 
@@ -143,19 +159,20 @@ func (m *MangosClient) notifySub(channel string) {
 func (m *MangosClient) startListening(sock mangos.Socket, channel string) {
 	var msg []byte
 	var err error
-	log.Info("Listening on: ", channel)
+	log.Debug("[CLIENT] Listening on: ", channel)
 
 	m.notifySub(channel)
 
 	for {
+		log.Debug("[CLIENT] Listening...")
 
 		if msg, err = sock.Recv(); err != nil {
 			log.WithFields(logrus.Fields{
 				"prefix": "tcf.MangosClient",
-			}).Fatalf("Cannot recv: %s\n", err.Error())
+			}).Fatalf("Cannot recv: ", err.Error())
 		}
 
-		log.Debug("Received: raw data: ", string(msg))
+		log.Debug("[CLIENT] Received: raw data: ", string(msg))
 
 		// Strip the namespace
 		payload := msg[len(channel):]
@@ -185,11 +202,17 @@ func (m *MangosClient) Subscribe(filter string, handler PayloadHandler) (chan st
 		return m.SubscribeChan, fmt.Errorf("can't get new sub socket: %s", err.Error())
 	}
 	sock.AddTransport(tcp.NewTransport())
+
+	log.Debug("Dialing: ", m.URL)
 	if err = sock.Dial(m.URL); err != nil {
 		return m.SubscribeChan, fmt.Errorf("can't dial on sub socket: %s", err.Error())
 	}
-	// Empty byte array effectively subscribes to everything
+
 	err = sock.SetOption(mangos.OptionSubscribe, []byte(filter))
+	//err = sock.SetOption(mangos.OptionSubscribe, []byte(""))
+	if err != nil {
+		return nil, err
+	}
 
 	m.registerHandlerForChannel(sock, filter, handler)
 
@@ -251,3 +274,46 @@ func (m *MangosClient) StopBroadcast(f string) error {
 	killChan <- struct{}{}
 	return nil
 }
+
+func (m *MangosClient) startMessagePublisher() error {
+	var err error
+	if m.pubSock, err = pub.NewSocket(); err != nil {
+		log.Errorf("can't get new pub socket: %s", err)
+		return nil
+	}
+
+	var u *url.URL
+	if u, err = url.Parse(m.URL); err != nil {
+		return err
+	}
+
+	var p int
+	if p, err = strconv.Atoi(u.Port()); err != nil {
+		log.Error(err)
+		return err
+	}
+
+	// The return address must always be inbound port+1 in order to find the correct publisher
+	returnAddress := fmt.Sprintf("%v://%v:%v", u.Scheme, u.Hostname(), p+1)
+	log.Debug("Creating Publisher...")
+
+	m.pubSock.AddTransport(tcp.NewTransport())
+	if err = m.pubSock.Listen(returnAddress); err != nil {
+		log.Errorf("can't listen on pub socket: %s", err.Error())
+		return errors.New("Can't listen on pub socket")
+	}
+
+	m.pubSock.SetPortHook(m.onPortAction)
+
+	log.Debug("Created Publisher on: ", returnAddress)
+
+	return nil
+}
+
+func (m *MangosClient) onPortAction(action mangos.PortAction, data mangos.Port) bool {
+	log.WithFields(logrus.Fields{
+		"prefix": "tcf.MangosClient",
+	}).Debug("New publish connection from: ", data.Address())
+	return true
+}
+

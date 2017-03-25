@@ -69,6 +69,12 @@
 			"revisionTime": "2017-01-30T19:11:53Z"
 		},
 		{
+			"checksumSHA1": "6JrI4kOgZoQUgPWClrJLILBpfvg=",
+			"path": "github.com/go-mangos/mangos/transport/ipc",
+			"revision": "2e75342da0929bc0d8a7eabdd8c12102dcedb070",
+			"revisionTime": "2017-01-30T19:11:53Z"
+		},
+		{
 			"checksumSHA1": "LdkRqfaCeiszPKHznmu5LWQHqiY=",
 			"path": "github.com/go-mangos/mangos/transport/tcp",
 			"revision": "2e75342da0929bc0d8a7eabdd8c12102dcedb070",
