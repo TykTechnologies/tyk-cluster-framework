@@ -130,14 +130,14 @@ func (b *BeaconClient) startListening(filter string) {
 
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.beaconclient",
-	}).Info("Listening")
+	}).Debug("Listening")
 
 	for {
 		s := <-b.beacon.Signals()
 		if s != nil {
 			log.WithFields(logrus.Fields{
 				"prefix": "tcf.beaconclient",
-			}).Info("Message received: ", string(s.(*beacon.Signal).Transmit))
+			}).Debug("Message received: ", string(s.(*beacon.Signal).Transmit))
 			b.handleBeaconMessage(s.(*beacon.Signal))
 		}
 
