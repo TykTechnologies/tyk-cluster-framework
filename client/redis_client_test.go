@@ -12,7 +12,7 @@ import (
 func TestRedisClient(t *testing.T) {
 	redisServer := os.Getenv("TCF_TEST_REDIS")
 	if redisServer == "" {
-		redisServer = "localhost:9100"
+		redisServer = "localhost:6379"
 	}
 	cs := "redis://" + redisServer
 
