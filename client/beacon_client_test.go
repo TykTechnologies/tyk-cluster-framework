@@ -4,7 +4,6 @@ import (
 	"testing"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"time"
-	"fmt"
 )
 
 func TestBeaconClient(t *testing.T) {
