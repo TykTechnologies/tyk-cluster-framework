@@ -20,7 +20,7 @@ var tcfClient client.Client
 
 func main() {
 	var err error
-	if tcfClient, err = client.NewClient("mangos://tcf-test:9100", encoding.JSON); err != nil {
+	if tcfClient, err = client.NewClient("mangos://127.0.0.1:9100", encoding.JSON); err != nil {
 		log.Fatal(err)
 	}
 
@@ -39,10 +39,12 @@ func main() {
 		fmt.Printf("RECEIVED: %v\n", d.FullName)
 	})
 
+	// Ensure the subscription is ok
 	if subErr != nil {
 		log.Fatal(subErr)
 	}
 
+	// Check for the subscription to be ready
 	select {
 	case v := <-s:
 		if v != CHANNAME {
@@ -52,6 +54,7 @@ func main() {
 		log.Fatalf("Channel wait timed out")
 	}
 
+	// Send some messages
 	go sendTestMessages("Foo")
 
 
