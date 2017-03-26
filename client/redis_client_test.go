@@ -59,7 +59,7 @@ func TestPayload(t *testing.T) {
 			if s != ch {
 				t.Fatal("Incorrect subscribe channel returned!")
 			}
-		case <-time.After(time.Second * 3):
+		case <-time.After(time.Second * 5):
 			t.Fatalf("Channel wait timed out")
 		}
 
@@ -142,7 +142,7 @@ func TestPayload(t *testing.T) {
 			if s != ch1 && s != ch2 {
 				t.Fatalf("Incorrect subscribe channel returned: %v", s)
 			}
-		case <-time.After(time.Second * 3):
+		case <-time.After(time.Second * 5):
 			t.Fatalf("Channel wait timed out")
 		}
 
@@ -151,7 +151,7 @@ func TestPayload(t *testing.T) {
 			if s != ch1 && s != ch2 {
 				t.Fatalf("Incorrect subscribe channel returned: %v", s)
 			}
-		case <-time.After(time.Second * 3):
+		case <-time.After(time.Second * 5):
 			t.Fatalf("Channel wait timed out")
 		}
 
@@ -168,7 +168,7 @@ func TestPayload(t *testing.T) {
 			if v.FullName != ch2Msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
-		case <-time.After(time.Millisecond * 100):
+		case <-time.After(time.Millisecond * 300):
 			t.Fatalf("Chan 2 timed out")
 		}
 
@@ -177,7 +177,7 @@ func TestPayload(t *testing.T) {
 			if v.FullName != ch1Msg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
-		case <-time.After(time.Millisecond * 100):
+		case <-time.After(time.Millisecond * 300):
 			t.Fatalf("Chan 1 timed out")
 		}
 
