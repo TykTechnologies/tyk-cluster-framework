@@ -57,6 +57,7 @@ type MangosClient struct {
 func (m *MangosClient) Init(config interface{}) error {
 
 	m.SubscribeChan = make(chan string)
+	m.broadcastKillChans = make(map[string]chan struct{})
 	m.payloadHandlers = socketMap{
 		payloadHandlers: make(map[string]*socketPayloadHandler),
 	}

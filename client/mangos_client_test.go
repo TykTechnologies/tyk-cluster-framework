@@ -12,13 +12,18 @@ type testPayloadData struct {
 }
 
 func TestMangosClient(t *testing.T) {
-	var s server.Server
+	var s, s1 server.Server
 	var err error
 	if s, err = server.NewServer("mangos://127.0.0.1:9100", encoding.JSON); err != nil {
 		t.Fatal(err)
 	}
 
+	if s1, err = server.NewServer("mangos://127.0.0.1:9105", encoding.JSON); err != nil {
+		t.Fatal(err)
+	}
+
 	s.Listen()
+	s1.Listen()
 
 	time.Sleep(1 * time.Second)
 
@@ -289,6 +294,72 @@ func TestMangosClient(t *testing.T) {
 		c1.Stop()
 		close(resultChan3)
 		close(resultChan4)
+	})
+
+	t.Run("Broadcast Test", func(t * testing.T){
+		var b Client
+		var err error
+		resultChan := make(chan testPayloadData)
+
+		if b, err = NewClient("mangos://127.0.0.1:9105", encoding.JSON); err != nil {
+			t.Fatal(err)
+		}
+
+		// Connect
+		if err = b.Connect(); err != nil {
+			t.Fatal(err)
+		}
+
+		time.Sleep(1 * time.Second)
+
+		ch := "tcf.test.mangos-server.broadcast-test"
+		chMsg := "Channel 1"
+		var pl Payload
+		if pl, err = NewPayload(testPayloadData{chMsg}); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := b.Broadcast(ch, pl, 1); err != nil {
+			t.Fatal(err)
+		}
+
+
+		if _, err = b.Subscribe(ch, func(payload Payload) {
+			var d testPayloadData
+			err := payload.DecodeMessage(&d)
+			if err != nil {
+				t.Fatalf("Decode payload failed: %v", err)
+			}
+
+			resultChan <- d
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		loopCnt := 0
+		msgCnt := 0
+		for loopCnt = 0; loopCnt <= 3; loopCnt++ {
+			select {
+			case v := <-resultChan:
+				if v.FullName != chMsg {
+					t.Fatalf("Unexpected return value: %v", v)
+				}
+				msgCnt += 1
+			case <-time.After(time.Second * 2):
+				// fall through
+			}
+		}
+
+		if msgCnt == 0 {
+			t.Fatal("Received no messages")
+		}
+
+		if msgCnt < 3 {
+			t.Fatalf("Received less than 3 messages, got: %v", msgCnt)
+		}
+
+
+		b.Stop()
 	})
 
 	// Test stop
