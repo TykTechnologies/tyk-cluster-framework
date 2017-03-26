@@ -1,35 +1,51 @@
 package client
 
 import (
-	"github.com/TykTechnologies/tyk-cluster-framework/verifier"
 	logger "github.com/TykTechnologies/tykcommon-logger"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 var log = logger.GetLogger()
 
+type RedisOptions struct {
+	MaxIdle     int
+	MaxActive   int
+	IdleTimeout int
+}
+
 type Config struct {
-	PayloadType                    PayloadType
+	PayloadType                    payloads.PayloadType
 	MessageHandlerType             MessageHandlerType
 	SetEncodingForPayloadsGlobally bool
-	Verifier                       verifier.Verifier
 	Handlers                       struct {
-		Redis struct {
-			MaxIdle     int
-			MaxActive   int
-			IdleTimeout int
-		}
+		Redis RedisOptions
 	}
 }
 
 
 // Global Client config
 var TCFConfig Config = Config{
-	PayloadType:                    PayloadDefaultPayload,
+	PayloadType:                    payloads.PayloadDefaultPayload,
 	MessageHandlerType:             MessageHandlerDefaultMessageHandler,
 	SetEncodingForPayloadsGlobally: true,
-	Verifier: verifier.NewHMACVerifier([]byte("c12e2f92-9055-4d96-8c10-91955c27e4f8")),
 }
 
 func init() {
 
+}
+
+func SetPayloadType(pType payloads.PayloadType) {
+	TCFConfig.PayloadType = pType
+}
+
+func SetMessageHandlerType(mhType MessageHandlerType) {
+	TCFConfig.MessageHandlerType = mhType
+}
+
+func SetEncodingForPayloadsGlobally(t bool) {
+	TCFConfig.SetEncodingForPayloadsGlobally = t
+}
+
+func SetRedisHandlerOptions(redisOptions RedisOptions) {
+	TCFConfig.Handlers.Redis = redisOptions
 }

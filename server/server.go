@@ -7,6 +7,7 @@ import (
 
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 var log *logrus.Logger = logger.GetLogger()
@@ -19,6 +20,7 @@ type Server interface {
 	Init(interface{}) error
 	Stop() error
 	Connections() []string
+	Publish(string, payloads.Payload) error
 }
 
 // NewServer will generate a new server object based on the enum provided.

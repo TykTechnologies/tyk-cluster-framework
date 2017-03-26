@@ -1,4 +1,4 @@
-package client
+package payloads
 
 import (
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"

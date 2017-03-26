@@ -4,6 +4,7 @@ import (
 	"testing"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"time"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 func TestBeaconClient(t *testing.T) {
@@ -18,8 +19,8 @@ func TestBeaconClient(t *testing.T) {
 
 	ch := "tcftestbeacon"
 	chMsg := "Channel 1"
-	var pl Payload
-	if pl, err = NewPayload(testPayloadData{chMsg}); err != nil {
+	var pl payloads.Payload
+	if pl, err = payloads.NewPayload(testPayloadData{chMsg}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -28,7 +29,7 @@ func TestBeaconClient(t *testing.T) {
 	}
 
 
-	if _, err = b.Subscribe(ch, func(payload Payload) {
+	if _, err = b.Subscribe(ch, func(payload payloads.Payload) {
 		var d testPayloadData
 		err := payload.DecodeMessage(&d)
 		if err != nil {

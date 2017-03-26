@@ -5,11 +5,12 @@ import (
 	"os"
 	"testing"
 	"time"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 // If Redis is remote, can be set with an env variable: TCF_TEST_REDIS,
 // otherwise localhost assumed
-func TestRedisClient(t *testing.T) {
+func TestPayload(t *testing.T) {
 	redisServer := os.Getenv("TCF_TEST_REDIS")
 	if redisServer == "" {
 		redisServer = "localhost:6379"
@@ -36,7 +37,7 @@ func TestRedisClient(t *testing.T) {
 
 		// Subscribe to some stuff
 		var subChan chan string
-		if subChan, err = c.Subscribe(ch, func(payload Payload) {
+		if subChan, err = c.Subscribe(ch, func(payload payloads.Payload) {
 			var d testPayloadData
 			err := payload.DecodeMessage(&d)
 			if err != nil {
@@ -48,8 +49,8 @@ func TestRedisClient(t *testing.T) {
 			t.Fatal("err")
 		}
 
-		var dp Payload
-		if dp, err = NewPayload(testPayloadData{msg}); err != nil {
+		var dp payloads.Payload
+		if dp, err = payloads.NewPayload(testPayloadData{msg}); err != nil {
 			t.Fatal(err)
 		}
 
@@ -101,7 +102,7 @@ func TestRedisClient(t *testing.T) {
 
 		// Subscribe to some stuff
 		var subChan chan string
-		if subChan, err = c1.Subscribe(ch1, func(payload Payload) {
+		if subChan, err = c1.Subscribe(ch1, func(payload payloads.Payload) {
 			var d testPayloadData
 			err := payload.DecodeMessage(&d)
 			if err != nil {
@@ -114,7 +115,7 @@ func TestRedisClient(t *testing.T) {
 		}
 
 		// Subscribe to some stuff
-		if subChan, err = c1.Subscribe(ch2, func(payload Payload) {
+		if subChan, err = c1.Subscribe(ch2, func(payload payloads.Payload) {
 			var d testPayloadData
 			err := payload.DecodeMessage(&d)
 			if err != nil {
@@ -126,13 +127,13 @@ func TestRedisClient(t *testing.T) {
 			t.Fatal("err")
 		}
 
-		var dpChan1, dpChan2 Payload
+		var dpChan1, dpChan2 payloads.Payload
 		ch1Msg := "Channel 1"
 		ch2Msg := "Channel 2"
-		if dpChan1, err = NewPayload(testPayloadData{ch1Msg}); err != nil {
+		if dpChan1, err = payloads.NewPayload(testPayloadData{ch1Msg}); err != nil {
 			t.Fatal(err)
 		}
-		if dpChan2, err = NewPayload(testPayloadData{ch2Msg}); err != nil {
+		if dpChan2, err = payloads.NewPayload(testPayloadData{ch2Msg}); err != nil {
 			t.Fatal(err)
 		}
 
@@ -207,7 +208,7 @@ func TestRedisClient(t *testing.T) {
 		}
 
 		// Subscribe to some stuff
-		if _, err = c1.Subscribe(ch1, func(payload Payload) {
+		if _, err = c1.Subscribe(ch1, func(payload payloads.Payload) {
 			var d testPayloadData
 			err := payload.DecodeMessage(&d)
 			if err != nil {
@@ -220,7 +221,7 @@ func TestRedisClient(t *testing.T) {
 		}
 
 		// Subscribe to some stuff
-		if _, err = c1.Subscribe(ch2, func(payload Payload) {
+		if _, err = c1.Subscribe(ch2, func(payload payloads.Payload) {
 			var d testPayloadData
 			err := payload.DecodeMessage(&d)
 			if err != nil {
@@ -232,13 +233,13 @@ func TestRedisClient(t *testing.T) {
 			t.Fatal("err")
 		}
 
-		var dpChan1, dpChan2 Payload
+		var dpChan1, dpChan2 payloads.Payload
 		ch1Msg := "Channel 1"
 		ch2Msg := "Channel 2"
-		if dpChan1, err = NewPayload(testPayloadData{ch1Msg}); err != nil {
+		if dpChan1, err = payloads.NewPayload(testPayloadData{ch1Msg}); err != nil {
 			t.Fatal(err)
 		}
-		if dpChan2, err = NewPayload(testPayloadData{ch2Msg}); err != nil {
+		if dpChan2, err = payloads.NewPayload(testPayloadData{ch2Msg}); err != nil {
 			t.Fatal(err)
 		}
 
@@ -297,8 +298,8 @@ func TestRedisClient(t *testing.T) {
 
 		ch := "tcf.test.redis-server.broadcast"
 		chMsg := "Channel 1"
-		var pl Payload
-		if pl, err = NewPayload(testPayloadData{chMsg}); err != nil {
+		var pl payloads.Payload
+		if pl, err = payloads.NewPayload(testPayloadData{chMsg}); err != nil {
 			t.Fatal(err)
 		}
 
@@ -307,7 +308,7 @@ func TestRedisClient(t *testing.T) {
 		}
 
 
-		if _, err = b.Subscribe(ch, func(payload Payload) {
+		if _, err = b.Subscribe(ch, func(payload payloads.Payload) {
 			var d testPayloadData
 			err := payload.DecodeMessage(&d)
 			if err != nil {

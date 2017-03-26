@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 
 	"fmt"
 	"time"
@@ -29,7 +30,7 @@ func main() {
 	}
 
 	// Subscribe to some stuff
-	s, subErr := tcfClient.Subscribe(CHANNAME, func(payload client.Payload) {
+	s, subErr := tcfClient.Subscribe(CHANNAME, func(payload payloads.Payload) {
 		var d testPayloadData
 		if decErr := payload.DecodeMessage(&d);  decErr != nil {
 			log.Fatalf("Decode payload failed: %v was: %v\n", decErr, payload)
@@ -61,10 +62,10 @@ func main() {
 func sendTestMessages(Payload string) {
 	for _, v := range []string{"1", "2", "3", "4", "5"} {
 		m := testPayloadData{FullName: Payload + ": " + v}
-		var p client.Payload
+		var p payloads.Payload
 		var pErr error
 
-		if p, pErr = client.NewPayload(m); pErr != nil {
+		if p, pErr = payloads.NewPayload(m); pErr != nil {
 			log.Fatal(pErr)
 		}
 
