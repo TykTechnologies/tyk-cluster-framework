@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"github.com/go-mangos/mangos/protocol/sub"
 	"time"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 type socketMap struct {
@@ -261,4 +262,42 @@ func (s *MangosServer) Stop() error {
 		return s.relay.Close()
 	}
 	return errors.New("Already stopped")
+}
+
+func (s *MangosServer) Publish(filter string, payload payloads.Payload) error {
+	if payload == nil {
+		return nil
+	}
+
+	data, encErr := payloads.Marshal(payload, s.encoding)
+	if encErr != nil {
+		return encErr
+	}
+
+	var encodedPayload []byte
+	switch data.(type) {
+	case []byte:
+		encodedPayload = data.([]byte)
+		break
+	case string:
+		encodedPayload = []byte(data.(string))
+		break
+	default:
+		return errors.New("Encoded data is not supported")
+	}
+
+	asPayload := append([]byte(filter), encodedPayload...)
+
+	if len(asPayload) == 0 {
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.MangosClient",
+		}).Error("No data to send, not sending")
+		return nil
+	}
+
+	if pubErr := s.relay.Send(asPayload); pubErr != nil {
+		return fmt.Errorf("Failed publishing: %s", pubErr.Error())
+	}
+
+	return nil
 }

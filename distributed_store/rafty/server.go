@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"path/filepath"
 )
 
@@ -158,7 +159,7 @@ func startBroadcast(msgClient client.Client, s *store.Store, raftyConfig *Config
 	for {
 		if !isPublishing {
 			if s.IsLeader() {
-				thisPayload, pErr := client.NewPayload(raftyConfig)
+				thisPayload, pErr := payloads.NewPayload(raftyConfig)
 
 				if pErr != nil {
 					log.WithFields(logrus.Fields{
@@ -185,7 +186,7 @@ func startBroadcast(msgClient client.Client, s *store.Store, raftyConfig *Config
 }
 
 func startListeningForMasterChange(msgClient client.Client, configChan chan Config) {
-	msgClient.Subscribe("tcf.cluster.distributed_store.leader", func(payload client.Payload) {
+	msgClient.Subscribe("tcf.cluster.distributed_store.leader", func(payload payloads.Payload) {
 		var d Config
 		decErr := payload.DecodeMessage(&d)
 		var skip bool

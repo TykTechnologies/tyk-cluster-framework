@@ -1,4 +1,4 @@
-package client
+package payloads
 
 import (
 	"errors"
@@ -13,7 +13,7 @@ const (
 )
 
 func NewPayload(msg interface{}) (Payload, error) {
-	switch TCFConfig.PayloadType {
+	switch defaultPayloadConfig.payloadType {
 	case PayloadDefaultPayload:
 		d := &DefaultPayload{rawMessage: msg, Encoding: encoding.JSON, Time: time.Now().Unix()}
 		d.Encode()

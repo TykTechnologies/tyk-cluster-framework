@@ -7,14 +7,15 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 // Client is a queue client managed by TCF
 type Client interface {
 	Connect() error
-	Publish(string, Payload) error
+	Publish(string, payloads.Payload) error
 	Subscribe(string, PayloadHandler) (chan string, error)
-	Broadcast(string, Payload, int) error
+	Broadcast(string, payloads.Payload, int) error
 	StopBroadcast(string) error
 	SetEncoding(encoding.Encoding) error
 	Init(interface{}) error

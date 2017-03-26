@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 type RedisClient struct {
@@ -46,11 +47,11 @@ func (c *RedisClient) Connect() error {
 	return nil
 }
 
-func (c *RedisClient) Publish(filter string, p Payload) error {
+func (c *RedisClient) Publish(filter string, p payloads.Payload) error {
 	if TCFConfig.SetEncodingForPayloadsGlobally {
 		p.SetEncoding(c.Encoding)
 	}
-	data, encErr := Marshal(p, c.Encoding)
+	data, encErr := payloads.Marshal(p, c.Encoding)
 	if encErr != nil {
 		return encErr
 	}
@@ -201,14 +202,14 @@ func (c *RedisClient) setupRedisPool(s string) (*redis.Pool, error) {
 	return thisClientPool, nil
 }
 
-func (c *RedisClient) Broadcast(filter string, payload Payload, interval int) error {
+func (c *RedisClient) Broadcast(filter string, payload payloads.Payload, interval int) error {
 	_, found := c.broadcastKillChans[filter]
 	if found {
 		return errors.New("Filter already broadcasting, stop first")
 	}
 
 	killChan := make(chan struct{})
-	go func(f string, p Payload, i int, k chan struct{}) {
+	go func(f string, p payloads.Payload, i int, k chan struct{}) {
 		var ticker <-chan time.Time
 		ticker = time.After(time.Duration(i) * time.Second)
 

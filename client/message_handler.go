@@ -3,15 +3,16 @@ package client
 import (
 	"errors"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 type MessageHandler interface {
-	HandleRawMessage(interface{}, encoding.Encoding) (Payload, error)
+	HandleRawMessage(interface{}, encoding.Encoding) (payloads.Payload, error)
 }
 
 type DefaultMessageHandler struct{}
 
-func (m *DefaultMessageHandler) HandleRawMessage(rawMessage interface{}, enc encoding.Encoding) (Payload, error) {
+func (m *DefaultMessageHandler) HandleRawMessage(rawMessage interface{}, enc encoding.Encoding) (payloads.Payload, error) {
 	switch rawMessage.(type) {
 	case []byte:
 		return m.handleByteArrayMessage(rawMessage.([]byte), enc)
@@ -20,12 +21,12 @@ func (m *DefaultMessageHandler) HandleRawMessage(rawMessage interface{}, enc enc
 	}
 }
 
-func (m *DefaultMessageHandler) handleByteArrayMessage(rawMessage []byte, enc encoding.Encoding) (Payload, error) {
-	thisPayload, pErr := NewPayload(struct{}{})
+func (m *DefaultMessageHandler) handleByteArrayMessage(rawMessage []byte, enc encoding.Encoding) (payloads.Payload, error) {
+	thisPayload, pErr := payloads.NewPayload(struct{}{})
 	if pErr != nil {
 		return nil, pErr
 	}
 
-	decodeFailure := Unmarshal(thisPayload, rawMessage, enc)
+	decodeFailure := payloads.Unmarshal(thisPayload, rawMessage, enc)
 	return thisPayload, decodeFailure
 }

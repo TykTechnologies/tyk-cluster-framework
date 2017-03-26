@@ -13,6 +13,7 @@ import (
 	"time"
 	"net/url"
 	"strconv"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 type socketPayloadHandler struct {
@@ -96,12 +97,12 @@ func (m *MangosClient) Stop() error {
 	return nil
 }
 
-func (m *MangosClient) Publish(filter string, payload Payload) error {
+func (m *MangosClient) Publish(filter string, payload payloads.Payload) error {
 	if payload == nil {
 		return nil
 	}
 
-	data, encErr := Marshal(payload, m.Encoding)
+	data, encErr := payloads.Marshal(payload, m.Encoding)
 	if encErr != nil {
 		return encErr
 	}
@@ -226,14 +227,14 @@ func (m *MangosClient) SetEncoding(enc encoding.Encoding) error {
 	return nil
 }
 
-func (m *MangosClient) Broadcast(filter string, payload Payload, interval int) error {
+func (m *MangosClient) Broadcast(filter string, payload payloads.Payload, interval int) error {
 	_, found := m.broadcastKillChans[filter]
 	if found {
 		return errors.New("Filter already broadcasting, stop first")
 	}
 
 	killChan := make(chan struct{})
-	go func(f string, p Payload, i int, k chan struct{}) {
+	go func(f string, p payloads.Payload, i int, k chan struct{}) {
 		var ticker <-chan time.Time
 		ticker = time.After(time.Duration(i) * time.Second)
 

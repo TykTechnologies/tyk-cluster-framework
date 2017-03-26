@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"testing"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 func TestHandleRawMessage(t *testing.T) {
@@ -12,7 +13,7 @@ func TestHandleRawMessage(t *testing.T) {
 		FullName: "foo",
 	}
 
-	pl, err := NewPayload(rawMessage)
+	pl, err := payloads.NewPayload(rawMessage)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,7 +23,7 @@ func TestHandleRawMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ph := func(p Payload) {
+	ph := func(p payloads.Payload) {
 		var d testPayloadData
 		decErr := p.DecodeMessage(&d)
 		if decErr != nil {

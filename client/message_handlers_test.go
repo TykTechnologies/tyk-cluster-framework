@@ -4,14 +4,15 @@ import (
 	"testing"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"encoding/json"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 func TestDefaultMessageHandler(t *testing.T) {
 	mh := NewMessageHandler()
-	var p Payload
+	var p payloads.Payload
 	var err error
 	rawMessage := testPayloadData{FullName:"Foo"}
-	if p, err = NewPayload(rawMessage); err != nil {
+	if p, err = payloads.NewPayload(rawMessage); err != nil {
 		t.Fatal(err)
 	}
 
@@ -19,7 +20,7 @@ func TestDefaultMessageHandler(t *testing.T) {
 	p.Encode()
 	asRaw, _ := json.Marshal(p)
 
-	var p1 Payload
+	var p1 payloads.Payload
 	if p1, err = mh.HandleRawMessage(asRaw, encoding.JSON); err != nil {
 		t.Fatal(err)
 	}

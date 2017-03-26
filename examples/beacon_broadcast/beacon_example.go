@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
@@ -30,7 +31,7 @@ func main() {
 	}
 
 	// Set up a subscription and payload handler
-	tcfClient.Subscribe(FILTER, func(payload client.Payload) {
+	tcfClient.Subscribe(FILTER, func(payload payloads.Payload) {
 		var d testPayloadData
 		if decErr := payload.DecodeMessage(&d); decErr != nil {
 			log.Fatalf("Decode payload failed: %v, was: %v", decErr, payload)
@@ -54,11 +55,11 @@ func main() {
 }
 
 func startBroadcast(Payload string) {
-	var p client.Payload
+	var p payloads.Payload
 	var err error
 
 	m := testPayloadData{FullName: Payload}
-	p, err = client.NewPayload(m)
+	p, err = payloads.NewPayload(m)
 	if err != nil {
 		log.Fatal(err)
 	}

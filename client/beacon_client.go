@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"sync"
 	"time"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 // payloadMap is a map that connects channel filter names to handlers so that
@@ -80,7 +81,7 @@ func (b *BeaconClient) Connect() error {
 
 // Publish is not implemented because the underlying beacon
 // library is designed for broadcasting periodically. Use the `Broadcast` method instead.
-func (b *BeaconClient) Publish(filter string, p Payload) error {
+func (b *BeaconClient) Publish(filter string, p payloads.Payload) error {
 	return errors.New("Beacon only broadcasts and subscribes")
 }
 
@@ -193,7 +194,7 @@ func (b *BeaconClient) Init(config interface{}) error {
 }
 
 // Broadcast will send the set payload via UDP every interval to the specified channel.
-func (b *BeaconClient) Broadcast(filter string, payload Payload, interval int) error {
+func (b *BeaconClient) Broadcast(filter string, payload payloads.Payload, interval int) error {
 
 	if payload == nil {
 		b.beacon.Silence()
@@ -205,7 +206,7 @@ func (b *BeaconClient) Broadcast(filter string, payload Payload, interval int) e
 		b.SetEncoding(b.Encoding)
 	}
 
-	data, encErr := Marshal(payload, b.Encoding)
+	data, encErr := payloads.Marshal(payload, b.Encoding)
 	if encErr != nil {
 		return encErr
 	}
