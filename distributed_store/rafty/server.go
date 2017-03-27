@@ -22,7 +22,7 @@ import (
 var log = logger.GetLogger()
 var logPrefix string = "tcf.rafty"
 
-func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signal, broadcastWith client.Client) {
+func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signal, broadcastWith client.Client, serviceChan chan *httpd.EmbeddedService) {
 	log.Info("Log level: ", os.Getenv("TYK_LOGLEVEL"))
 	if raftyConfig == nil {
 		log.WithFields(logrus.Fields{
@@ -109,6 +109,9 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 		}
 
 	}
+
+	// Return a pointer to the storage API
+	serviceChan <- h.EmbeddedAPI
 
 	signal.Notify(killChan, os.Interrupt)
 	<-killChan

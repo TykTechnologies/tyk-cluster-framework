@@ -118,7 +118,7 @@ func (s *StorageAPI) SetKey(k string, value *rafty_objects.NodeValue, overwrite 
 	}
 
 	if errResp == nil && allowOverwrite == false {
-		keyExistsErr := &ErrorResponse{Cause: "/" + k, Error: RAFTErrorKeyExists}
+		keyExistsErr := NewErrorResponse("/" + k, RAFTErrorKeyExists)
 		return nil, keyExistsErr
 	}
 

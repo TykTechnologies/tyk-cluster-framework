@@ -54,14 +54,24 @@ type Service struct {
 
 	store      Store
 	StorageAPI *StorageAPI
+	EmbeddedAPI *EmbeddedService
 }
 
 // New returns an uninitialized HTTP service.
 func New(addr string, store Store, tlsConfig *TLSConfig) *Service {
+	var tls bool
+	if tlsConfig != nil {
+		tls = true
+	}
+
+	sAPI := NewStorageAPI(store)
+	eAPI := NewEmbeddedService(tls, sAPI)
+
 	return &Service{
 		addr:       addr,
 		store:      store,
-		StorageAPI: NewStorageAPI(store),
+		StorageAPI: sAPI,
+		EmbeddedAPI: eAPI,
 		tlsConfig:  tlsConfig,
 	}
 }
@@ -222,7 +232,7 @@ func (s *Service) handleGetKey(w http.ResponseWriter, r *http.Request) {
 	// Get the existing value
 	returnValue, errResp := s.StorageAPI.GetKey(k, false)
 	if errResp != nil {
-		if errResp.Error == RAFTErrorNotFound {
+		if errResp.ErrorCode == RAFTErrorNotFound {
 			s.writeToClient(w, r, errResp, http.StatusNotFound)
 			return
 		}
@@ -268,7 +278,7 @@ func (s *Service) handleCreateKey(w http.ResponseWriter, r *http.Request) {
 	// Write data to the store
 	toReturn, errResp := s.StorageAPI.SetKey(k, &nodeData, false)
 	if errResp != nil {
-		if errResp.Error == RAFTErrorKeyExists {
+		if errResp.ErrorCode == RAFTErrorKeyExists {
 			s.writeToClient(w, r, errResp, http.StatusBadRequest)
 			return
 		}
@@ -337,7 +347,7 @@ func (s *Service) handleUpdateKey(w http.ResponseWriter, r *http.Request) {
 
 	// Write data to the store
 	if _, err := s.StorageAPI.SetKey(k, &nodeValue, true); err != nil {
-		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not write to store: "+err.Error.Reason), http.StatusInternalServerError)
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not write to store: "+err.ErrorCode.Reason), http.StatusInternalServerError)
 		return
 	}
 
@@ -361,7 +371,7 @@ func (s *Service) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err, _ := s.StorageAPI.DeleteKey(k); err != nil {
+	if _, err := s.StorageAPI.DeleteKey(k); err != nil {
 		s.writeToClient(w, r, err, http.StatusInternalServerError)
 		return
 	}

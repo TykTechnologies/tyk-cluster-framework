@@ -1,8 +1,7 @@
-package raftyclient
+package httpd
 
 import (
 	"encoding/json"
-	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/http"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -37,7 +36,7 @@ func (c *APIClient) processErrorResponse(resp *http.Response) error {
 		return eBerr
 	}
 
-	apiErrObject := &httpd.ErrorResponse{}
+	apiErrObject := &ErrorResponse{}
 	nmErr := json.Unmarshal(errBody, apiErrObject)
 	if nmErr != nil {
 		return nmErr
@@ -46,7 +45,7 @@ func (c *APIClient) processErrorResponse(resp *http.Response) error {
 	return errors.New(apiErrObject.String())
 }
 
-func (c *APIClient) GetKey(key string) (*httpd.KeyValueAPIObject, error) {
+func (c *APIClient) GetKey(key string) (*KeyValueAPIObject, error) {
 	u := c.targetURL + "/" + key
 
 	thisHttpRequest, rErr := http.NewRequest("GET", u, nil)
@@ -73,7 +72,7 @@ func (c *APIClient) GetKey(key string) (*httpd.KeyValueAPIObject, error) {
 		return nil, bErr
 	}
 
-	newAPIReturnObject := httpd.NewKeyValueAPIObject()
+	newAPIReturnObject := NewKeyValueAPIObject()
 
 	mErr := json.Unmarshal(body, newAPIReturnObject)
 	if mErr != nil {
@@ -83,7 +82,7 @@ func (c *APIClient) GetKey(key string) (*httpd.KeyValueAPIObject, error) {
 	return newAPIReturnObject, nil
 }
 
-func (c *APIClient) DeleteKey(key string) (*httpd.KeyValueAPIObject, error) {
+func (c *APIClient) DeleteKey(key string) (*KeyValueAPIObject, error) {
 	u := c.targetURL + "/" + key
 	thisHttpRequest, rErr := http.NewRequest("DELETE", u, nil)
 	if rErr != nil {
@@ -108,7 +107,7 @@ func (c *APIClient) DeleteKey(key string) (*httpd.KeyValueAPIObject, error) {
 		return nil, bErr
 	}
 
-	newAPIReturnObject := httpd.NewKeyValueAPIObject()
+	newAPIReturnObject := NewKeyValueAPIObject()
 
 	mErr := json.Unmarshal(body, newAPIReturnObject)
 	if mErr != nil {
@@ -118,7 +117,7 @@ func (c *APIClient) DeleteKey(key string) (*httpd.KeyValueAPIObject, error) {
 	return newAPIReturnObject, nil
 }
 
-func (c *APIClient) CreateKey(key string, value interface{}, ttl string) (*httpd.KeyValueAPIObject, error) {
+func (c *APIClient) CreateKey(key string, value interface{}, ttl string) (*KeyValueAPIObject, error) {
 
 	valueAsJSON, encErr := json.Marshal(value)
 	if encErr != nil {
@@ -160,7 +159,7 @@ func (c *APIClient) CreateKey(key string, value interface{}, ttl string) (*httpd
 		return nil, bErr
 	}
 
-	newAPIReturnObject := httpd.NewKeyValueAPIObject()
+	newAPIReturnObject := NewKeyValueAPIObject()
 
 	mErr := json.Unmarshal(body, newAPIReturnObject)
 	if mErr != nil {
@@ -170,7 +169,7 @@ func (c *APIClient) CreateKey(key string, value interface{}, ttl string) (*httpd
 	return newAPIReturnObject, nil
 }
 
-func (c *APIClient) UpdateKey(key string, value interface{}, ttl string) (*httpd.KeyValueAPIObject, error) {
+func (c *APIClient) UpdateKey(key string, value interface{}, ttl string) (*KeyValueAPIObject, error) {
 	valueAsJSON, encErr := json.Marshal(value)
 	if encErr != nil {
 		return nil, encErr
@@ -211,7 +210,7 @@ func (c *APIClient) UpdateKey(key string, value interface{}, ttl string) (*httpd
 		return nil, bErr
 	}
 
-	newAPIReturnObject := httpd.NewKeyValueAPIObject()
+	newAPIReturnObject := NewKeyValueAPIObject()
 
 	mErr := json.Unmarshal(body, newAPIReturnObject)
 	if mErr != nil {

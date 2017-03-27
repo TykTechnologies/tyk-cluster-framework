@@ -55,19 +55,27 @@ var (
 )
 
 type ErrorResponse struct {
-	Cause    string      `json:"cause"`
-	Error    ErrorCode   `json:"error"`
-	MetaData interface{} `json:"metaData,omitempty"`
+	Cause        string      `json:"cause"`
+	ErrorCode    ErrorCode   `json:"errorCode"`
+	MetaData     interface{} `json:"metaData,omitempty"`
 }
 
 func (e *ErrorResponse) String() string {
-	return fmt.Sprintf("API error from: %s reason: %s (%v) metadata: %v", e.Cause, e.Error.Reason, e.Error.Code, e.MetaData)
+	return fmt.Sprintf("API error from: %v reason: %v (%v) metadata: %v",
+		e.Cause,
+		e.ErrorCode.Reason,
+		e.ErrorCode.Code,
+		e.MetaData)
+}
+
+func (e *ErrorResponse) Error() string {
+	return e.String()
 }
 
 func NewErrorResponse(cause string, metadata interface{}) *ErrorResponse {
 	return &ErrorResponse{
 		Cause:    cause,
-		Error:    RAFTErrorWithApplication,
+		ErrorCode:    RAFTErrorWithApplication,
 		MetaData: metadata,
 	}
 }
@@ -75,7 +83,7 @@ func NewErrorResponse(cause string, metadata interface{}) *ErrorResponse {
 func NewErrorNotFound(cause string) *ErrorResponse {
 	return &ErrorResponse{
 		Cause: cause,
-		Error: RAFTErrorNotFound,
+		ErrorCode: RAFTErrorNotFound,
 	}
 }
 
