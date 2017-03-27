@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math/rand"
 	"github.com/levigross/grequests"
+	"encoding/json"
 )
 
 func getClient() (client.Client, error) {
@@ -90,7 +91,7 @@ func TestDistributedStore(t *testing.T) {
 	ds3.Start("", c3)
 	time.Sleep(time.Second * 10)
 
-	t.Run("Is leader Set Correctly", func(t *testing.T) {
+	t.Run("Is leader set correctly", func(t *testing.T) {
 		resp, err := grequests.Get("http://127.0.0.1:11100/leader", nil)
 		if err != nil {
 			t.Fatal(err)
@@ -241,8 +242,12 @@ func RandStringRunes(n int) string {
 	return string(b)
 }
 
-func BenchmarkDistributedStoreRaftyClientHTTP(b *testing.B) {
-	fmt.Print("THIS IS THE BENCHMARK!!!!!!")
+type tdType struct {
+	Payload string
+	N string
+}
+
+func BenchmarkDistributedStoreRaftyClient(b *testing.B) {
 	// Kill all the leftover data
 	os.RemoveAll("raft-test1")
 	os.RemoveAll("raft-test2")
@@ -298,10 +303,6 @@ func BenchmarkDistributedStoreRaftyClientHTTP(b *testing.B) {
 	time.Sleep(time.Second * 10)
 
 	rc := httpd.NewRaftyClient("http://127.0.0.1:11100")
-	type tdType struct {
-		Payload string
-		N string
-	}
 
 	rc2 := httpd.NewRaftyClient("http://127.0.0.1:11101")
 
@@ -338,3 +339,95 @@ func BenchmarkDistributedStoreRaftyClientHTTP(b *testing.B) {
 	ds2.Stop()
 	ds3.Stop()
 }
+
+func BenchmarkDistributedStoreEmbeddedClient(b *testing.B) {
+	// Kill all the leftover data
+	os.RemoveAll("raft-test1")
+	os.RemoveAll("raft-test2")
+	os.RemoveAll("raft-test3")
+
+	c1, err := getBenchClient()
+	if err != nil {
+		b.Fatal(err)
+	}
+	c2, err := getBenchClient()
+	if err != nil {
+		b.Fatal(err)
+	}
+	c3, err := getBenchClient()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	raft1 := &rafty.Config{
+		HttpServerAddr:        "127.0.0.1:11100",
+		RaftServerAddress:     "127.0.0.1:11200",
+		RaftDir:               "./raft-test1",
+		RunInSingleServerMode: false,
+		ResetPeersOnLoad:      true,
+	}
+
+	raft2 := &rafty.Config{
+		HttpServerAddr:        "127.0.0.1:11101",
+		RaftServerAddress:     "127.0.0.1:11201",
+		RaftDir:               "./raft-test2",
+		RunInSingleServerMode: false,
+		ResetPeersOnLoad:      true,
+	}
+
+	raft3 := &rafty.Config{
+		HttpServerAddr:        "127.0.0.1:11102",
+		RaftServerAddress:     "127.0.0.1:11202",
+		RaftDir:               "./raft-test3",
+		RunInSingleServerMode: false,
+		ResetPeersOnLoad:      true,
+	}
+
+	ds1, err := NewDistributedStore(raft1)
+	ds2, err := NewDistributedStore(raft2)
+	ds3, err := NewDistributedStore(raft3)
+
+	ds1.Start("", c1)
+
+	// Lets wait for the first instance to kick off so we have a master
+	time.Sleep(time.Second * 10)
+	ds2.Start("", c2)
+	ds3.Start("", c3)
+	time.Sleep(time.Second * 10)
+
+	asJSON, _ := json.Marshal(tdType{Payload: RandStringRunes(100), N:"100"})
+
+	// Create a test key
+	ds1.StorageAPI.CreateKey("benchtest-read", string(asJSON), 0)
+	b.Run("READ SPEED MASTER", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ds1.StorageAPI.GetKey("benchtest-read")
+		}
+	})
+
+	b.Run("READ SPEED SLAVE", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ds2.StorageAPI.GetKey("benchtest-read")
+		}
+	})
+
+	writeBenchmarks := []string{
+		string(asJSON),
+	}
+
+	for _, v := range writeBenchmarks {
+		// Writes
+		b.Run(fmt.Sprint("WRITE SPEED"), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				ds1.StorageAPI.CreateKey("benchtest-"+RandStringRunes(10), v, 0)
+			}
+		})
+	}
+
+
+	// Tear-down
+	ds1.Stop()
+	ds2.Stop()
+	ds3.Stop()
+}
+
