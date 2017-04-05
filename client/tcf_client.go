@@ -1,8 +1,8 @@
 package client
 
 import (
-	logger "github.com/TykTechnologies/tykcommon-logger"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
+	logger "github.com/TykTechnologies/tykcommon-logger"
 )
 
 var log = logger.GetLogger()
@@ -21,7 +21,6 @@ type Config struct {
 		Redis RedisOptions
 	}
 }
-
 
 // Global Client config
 var TCFConfig Config = Config{

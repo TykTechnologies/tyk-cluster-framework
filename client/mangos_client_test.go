@@ -2,10 +2,10 @@ package client
 
 import (
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
+	"github.com/TykTechnologies/tyk-cluster-framework/server"
 	"testing"
 	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/server"
-	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 type testPayloadData struct {
@@ -46,7 +46,6 @@ func TestMangosClient(t *testing.T) {
 			t.Fatal(err)
 		}
 
-
 		// Subscribe to some stuff
 		var subChan chan string
 		if subChan, err = c.Subscribe(ch, func(payload payloads.Payload) {
@@ -75,9 +74,7 @@ func TestMangosClient(t *testing.T) {
 			t.Fatalf("Channel wait timed out")
 		}
 
-
 		time.Sleep(1 * time.Second)
-
 
 		// This is ugly, but mangos handles connect in the background, so we need to wait :-/
 		if err = c.Publish(ch, dp); err != nil {
@@ -297,7 +294,7 @@ func TestMangosClient(t *testing.T) {
 		close(resultChan4)
 	})
 
-	t.Run("Broadcast Test", func(t * testing.T){
+	t.Run("Broadcast Test", func(t *testing.T) {
 		var b Client
 		var err error
 		resultChan := make(chan testPayloadData)
@@ -323,7 +320,6 @@ func TestMangosClient(t *testing.T) {
 		if err := b.Broadcast(ch, pl, 1); err != nil {
 			t.Fatal(err)
 		}
-
 
 		if _, err = b.Subscribe(ch, func(payload payloads.Payload) {
 			var d testPayloadData
@@ -359,6 +355,69 @@ func TestMangosClient(t *testing.T) {
 			t.Fatalf("Received less than 3 messages, got: %v", msgCnt)
 		}
 
+		b.Stop()
+	})
+
+	t.Run("Broadcast Test Change Payload", func(t *testing.T) {
+		var b Client
+		var err error
+		resultChan := make(chan testPayloadData)
+
+		if b, err = NewClient("mangos://127.0.0.1:9105", encoding.JSON); err != nil {
+			t.Fatal(err)
+		}
+
+		// Connect
+		if err = b.Connect(); err != nil {
+			t.Fatal(err)
+		}
+
+		time.Sleep(1 * time.Second)
+
+		ch := "tcf.test.mangos-server.broadcast-test"
+		chMsg := "Channel 1"
+		var pl payloads.Payload
+		if pl, err = payloads.NewPayload(testPayloadData{chMsg}); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := b.Broadcast(ch, pl, 1); err != nil {
+			t.Fatal(err)
+		}
+
+		if _, err = b.Subscribe(ch, func(payload payloads.Payload) {
+			var d testPayloadData
+			err := payload.DecodeMessage(&d)
+			if err != nil {
+				t.Fatalf("Decode payload failed: %v", err)
+			}
+
+			resultChan <- d
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		loopCnt := 0
+		msgCnt := 0
+		for loopCnt = 0; loopCnt <= 3; loopCnt++ {
+			select {
+			case v := <-resultChan:
+				if v.FullName != chMsg {
+					t.Fatalf("Unexpected return value: %v", v)
+				}
+				msgCnt += 1
+			case <-time.After(time.Second * 2):
+				// fall through
+			}
+		}
+
+		if msgCnt == 0 {
+			t.Fatal("Received no messages")
+		}
+
+		if msgCnt < 3 {
+			t.Fatalf("Received less than 3 messages, got: %v", msgCnt)
+		}
 
 		b.Stop()
 	})

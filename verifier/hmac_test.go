@@ -1,8 +1,8 @@
 package verifier
 
 import (
-	"testing"
 	"encoding/json"
+	"testing"
 )
 
 type testPayloadData struct {
@@ -19,7 +19,6 @@ func TestHMAC256(t *testing.T) {
 	rawMessage := testPayloadData{
 		FullName: "foo",
 	}
-
 
 	var val interface{}
 	val, err = json.Marshal(rawMessage)

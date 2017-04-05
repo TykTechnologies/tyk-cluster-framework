@@ -7,7 +7,7 @@ import (
 	"errors"
 )
 
-type HMAC256 struct{
+type HMAC256 struct {
 	secret []byte
 }
 

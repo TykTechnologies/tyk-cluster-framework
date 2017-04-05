@@ -55,9 +55,9 @@ var (
 )
 
 type ErrorResponse struct {
-	Cause        string      `json:"cause"`
-	ErrorCode    ErrorCode   `json:"errorCode"`
-	MetaData     interface{} `json:"metaData,omitempty"`
+	Cause     string      `json:"cause"`
+	ErrorCode ErrorCode   `json:"errorCode"`
+	MetaData  interface{} `json:"metaData,omitempty"`
 }
 
 func (e *ErrorResponse) String() string {
@@ -74,15 +74,15 @@ func (e *ErrorResponse) Error() string {
 
 func NewErrorResponse(cause string, metadata interface{}) *ErrorResponse {
 	return &ErrorResponse{
-		Cause:    cause,
-		ErrorCode:    RAFTErrorWithApplication,
-		MetaData: metadata,
+		Cause:     cause,
+		ErrorCode: RAFTErrorWithApplication,
+		MetaData:  metadata,
 	}
 }
 
 func NewErrorNotFound(cause string) *ErrorResponse {
 	return &ErrorResponse{
-		Cause: cause,
+		Cause:     cause,
 		ErrorCode: RAFTErrorNotFound,
 	}
 }

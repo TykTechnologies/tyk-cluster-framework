@@ -9,8 +9,8 @@ import (
 	"time"
 	//"runtime"
 	//"fmt"
-	"runtime"
 	"fmt"
+	"runtime"
 )
 
 func TestBeacon(t *testing.T) {
@@ -116,4 +116,3 @@ func TestBeacon(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 	}
 }
-

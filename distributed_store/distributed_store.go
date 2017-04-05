@@ -5,19 +5,19 @@ import (
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
 	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty"
+	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/http"
 	logger "github.com/TykTechnologies/tykcommon-logger"
 	"github.com/nu7hatch/gouuid"
 	"os"
-	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/http"
 )
 
 var log *logrus.Logger = logger.GetLogger()
 var DistributedStores map[string]chan os.Signal = make(map[string]chan os.Signal)
 
 type DistributedStore struct {
-	config   *rafty.Config
+	config     *rafty.Config
 	StorageAPI *httpd.EmbeddedService
-	serverID string
+	serverID   string
 }
 
 func NewDistributedStore(config *rafty.Config) (*DistributedStore, error) {
@@ -47,7 +47,7 @@ func (d *DistributedStore) Start(joinAddress string, broadcastWith client.Client
 	go rafty.StartServer(joinAddress, d.config, termChan, broadcastWith, storageChan)
 
 	// We want to be able to use the server functions directly without calling the http API
-	d.StorageAPI = <- storageChan
+	d.StorageAPI = <-storageChan
 
 	log.WithFields(logrus.Fields{
 		"prefix": "distributed_store",

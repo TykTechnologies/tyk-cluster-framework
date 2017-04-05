@@ -1,17 +1,17 @@
 package tcf
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
 	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty"
 	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/http"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/levigross/grequests"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
-	"fmt"
-	"math/rand"
-	"github.com/levigross/grequests"
-	"encoding/json"
 )
 
 func getClient() (client.Client, error) {
@@ -112,8 +112,7 @@ func TestDistributedStore(t *testing.T) {
 		}
 	})
 
-
-	t.Run("Test create", func(t *testing.T){
+	t.Run("Test create", func(t *testing.T) {
 		var v *httpd.KeyValueAPIObject
 		var err error
 
@@ -131,7 +130,7 @@ func TestDistributedStore(t *testing.T) {
 			t.Fatal("Incorrect value saved")
 		}
 	})
-	t.Run("Test read", func(t *testing.T){
+	t.Run("Test read", func(t *testing.T) {
 		_, err := ds1.StorageAPI.CreateKey("create-test-2", "foo", 999)
 		if err != nil {
 			t.Fatal(err)
@@ -146,7 +145,7 @@ func TestDistributedStore(t *testing.T) {
 			t.Fatal("Incorrect value returned by GET")
 		}
 	})
-	t.Run("Test update", func(t *testing.T){
+	t.Run("Test update", func(t *testing.T) {
 		k := "update-test-1"
 		uv := "bar"
 		_, err := ds1.StorageAPI.CreateKey(k, "foo", 999)
@@ -181,7 +180,7 @@ func TestDistributedStore(t *testing.T) {
 			t.Fatalf("Value not updated! Expected %v, got: %v", uv, g2.Node.Value)
 		}
 	})
-	t.Run("Test delete", func(t *testing.T){
+	t.Run("Test delete", func(t *testing.T) {
 		k := "delete-test-1"
 		_, err := ds1.StorageAPI.CreateKey(k, "foo", 999)
 		if err != nil {
@@ -244,7 +243,7 @@ func RandStringRunes(n int) string {
 
 type tdType struct {
 	Payload string
-	N string
+	N       string
 }
 
 func BenchmarkDistributedStoreRaftyClient(b *testing.B) {
@@ -307,7 +306,7 @@ func BenchmarkDistributedStoreRaftyClient(b *testing.B) {
 	rc2 := httpd.NewRaftyClient("http://127.0.0.1:11101")
 
 	// Create a test key
-	rc.CreateKey("benchtest-read", tdType{Payload: RandStringRunes(100), N:"100"}, "0")
+	rc.CreateKey("benchtest-read", tdType{Payload: RandStringRunes(100), N: "100"}, "0")
 	b.Run("READ SPEED MASTER", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			rc.GetKey("benchtest-read")
@@ -321,18 +320,17 @@ func BenchmarkDistributedStoreRaftyClient(b *testing.B) {
 	})
 
 	writeBenchmarks := []tdType{
-		tdType{Payload: RandStringRunes(100), N:"100"},
+		tdType{Payload: RandStringRunes(100), N: "100"},
 	}
 
 	for _, v := range writeBenchmarks {
 		// Writes
-		b.Run(fmt.Sprintf("WRITE SPEED: %v",v.N), func(b *testing.B) {
+		b.Run(fmt.Sprintf("WRITE SPEED: %v", v.N), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				rc.CreateKey("benchtest-"+v.N+RandStringRunes(10), v, "0")
 			}
 		})
 	}
-
 
 	// Tear-down
 	ds1.Stop()
@@ -395,7 +393,7 @@ func BenchmarkDistributedStoreEmbeddedClient(b *testing.B) {
 	ds3.Start("", c3)
 	time.Sleep(time.Second * 10)
 
-	asJSON, _ := json.Marshal(tdType{Payload: RandStringRunes(100), N:"100"})
+	asJSON, _ := json.Marshal(tdType{Payload: RandStringRunes(100), N: "100"})
 
 	// Create a test key
 	ds1.StorageAPI.CreateKey("benchtest-read", string(asJSON), 0)
@@ -424,10 +422,8 @@ func BenchmarkDistributedStoreEmbeddedClient(b *testing.B) {
 		})
 	}
 
-
 	// Tear-down
 	ds1.Stop()
 	ds2.Stop()
 	ds3.Stop()
 }
-

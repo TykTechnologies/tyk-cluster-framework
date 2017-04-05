@@ -1,10 +1,10 @@
 package client
 
 import (
-	"testing"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
-	"time"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
+	"testing"
+	"time"
 )
 
 func TestBeaconClient(t *testing.T) {
@@ -27,7 +27,6 @@ func TestBeaconClient(t *testing.T) {
 	if err := b.Broadcast(ch, pl, 1); err != nil {
 		t.Fatal(err)
 	}
-
 
 	if _, err = b.Subscribe(ch, func(payload payloads.Payload) {
 		var d testPayloadData
@@ -63,8 +62,6 @@ func TestBeaconClient(t *testing.T) {
 		t.Fatalf("Received less than 3 messages, got: %v", msgCnt)
 	}
 
-
 	b.Stop()
-
 
 }

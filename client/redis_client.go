@@ -4,11 +4,11 @@ import (
 	"errors"
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/garyburd/redigo/redis"
 	"net/url"
 	"strings"
 	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 type RedisClient struct {
@@ -84,6 +84,8 @@ func (c *RedisClient) Publish(filter string, p payloads.Payload) error {
 		}).Warning("Not connected, connecting")
 		c.Connect()
 	}
+
+	//fmt.Printf("REDIS PUBLISHING: %v\n", string(toSend))
 	conn.Do("PUBLISH", filter, string(toSend))
 	return nil
 }
@@ -126,6 +128,7 @@ func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) (chan str
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf.redisclient",
 				}).Error("Redis disconnected: ", v)
+				break
 			}
 		}
 		log.WithFields(logrus.Fields{

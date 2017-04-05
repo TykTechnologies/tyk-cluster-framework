@@ -2,10 +2,10 @@ package client
 
 import (
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"os"
 	"testing"
 	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 // If Redis is remote, can be set with an env variable: TCF_TEST_REDIS,
@@ -280,7 +280,7 @@ func TestPayload(t *testing.T) {
 
 	})
 
-	t.Run("Broadcast Test", func(t * testing.T){
+	t.Run("Broadcast Test", func(t *testing.T) {
 		var b Client
 		var err error
 		resultChan := make(chan testPayloadData)
@@ -306,7 +306,6 @@ func TestPayload(t *testing.T) {
 		if err := b.Broadcast(ch, pl, 1); err != nil {
 			t.Fatal(err)
 		}
-
 
 		if _, err = b.Subscribe(ch, func(payload payloads.Payload) {
 			var d testPayloadData
@@ -341,7 +340,6 @@ func TestPayload(t *testing.T) {
 		if msgCnt < 3 {
 			t.Fatalf("Received less than 3 messages, got: %v", msgCnt)
 		}
-
 
 		b.Stop()
 	})

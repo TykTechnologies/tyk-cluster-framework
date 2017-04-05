@@ -1,8 +1,8 @@
 package httpd
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func returnsError() error {

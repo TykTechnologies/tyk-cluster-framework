@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"github.com/TykTechnologies/tyk-cluster-framework/server"
 	"log"
 	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 func main() {

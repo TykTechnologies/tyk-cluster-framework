@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
-	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 type testPayloadData struct {

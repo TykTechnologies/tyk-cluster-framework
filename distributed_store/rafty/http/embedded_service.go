@@ -1,39 +1,40 @@
 package httpd
 
 import (
+	"errors"
 	rafty_objects "github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/objects"
-	"gopkg.in/vmihailenco/msgpack.v2"
 	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/store"
+	"gopkg.in/vmihailenco/msgpack.v2"
 	"net/url"
 	"strconv"
-	"errors"
 )
 
 type forwardingCommand string
+
 const (
 	forward_create forwardingCommand = "create"
-	forward_get forwardingCommand = "get"
+	forward_get    forwardingCommand = "get"
 	forward_update forwardingCommand = "update"
 	forward_delete forwardingCommand = "delete"
 )
 
-type EmbeddedService struct{
+type EmbeddedService struct {
 	storageAPI *StorageAPI
-	TLS bool
+	TLS        bool
 }
 
 func NewEmbeddedService(useTLS bool, storageAPI *StorageAPI) *EmbeddedService {
 	return &EmbeddedService{
 		storageAPI: storageAPI,
-		TLS: useTLS,
+		TLS:        useTLS,
 	}
 }
 
 func (e *EmbeddedService) CreateKey(key string, value string, ttl int) (*KeyValueAPIObject, error) {
 	nodeData := &rafty_objects.NodeValue{
-		TTL: ttl,
+		TTL:   ttl,
 		Value: value,
-		Key: key,
+		Key:   key,
 	}
 
 	if !e.storageAPI.store.IsLeader() {
@@ -51,7 +52,7 @@ func (e *EmbeddedService) CreateKey(key string, value string, ttl int) (*KeyValu
 	return returnData, nil
 }
 
-func (e *EmbeddedService) UpdateKey(key, value string, ttl int) (*KeyValueAPIObject, error)  {
+func (e *EmbeddedService) UpdateKey(key, value string, ttl int) (*KeyValueAPIObject, error) {
 	// Get the existing value
 	v, errResp := e.storageAPI.getKeyFromStore(key)
 	if errResp != nil {
@@ -64,7 +65,6 @@ func (e *EmbeddedService) UpdateKey(key, value string, ttl int) (*KeyValueAPIObj
 	if mDecErr != nil {
 		return nil, NewErrorResponse("/"+key, "Key marshalling failed: "+mDecErr.Error())
 	}
-
 
 	// Set expiry value if it has changed
 	if nodeValue.TTL != ttl {

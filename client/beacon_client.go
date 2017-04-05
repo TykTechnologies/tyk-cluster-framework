@@ -5,11 +5,11 @@ import (
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/client/beacon"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"gopkg.in/vmihailenco/msgpack.v2"
 	"runtime"
 	"sync"
 	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 // payloadMap is a map that connects channel filter names to handlers so that
@@ -142,18 +142,7 @@ func (b *BeaconClient) startListening(filter string) {
 			b.handleBeaconMessage(s.(*beacon.Signal))
 		}
 
-		//select {
-		//// TODO: Stop
-		//case s := <-b.beacon.Signals():
-		//	signal := s.(*beacon.Signal)
-		//	b.handleBeaconMessage(signal)
-		//}
-
 	}
-	log.WithFields(logrus.Fields{
-		"prefix": "tcf.beaconclient",
-	}).Info("Stopped listening")
-	b.listening = false
 }
 
 // Subscribe enables you to add a payload handler to a chanel filter, so multiple functions

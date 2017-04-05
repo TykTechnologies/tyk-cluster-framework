@@ -3,7 +3,7 @@ package payloads
 import "github.com/TykTechnologies/tyk-cluster-framework/verifier"
 
 type config struct {
-	verifier verifier.Verifier
+	verifier    verifier.Verifier
 	payloadType PayloadType
 }
 

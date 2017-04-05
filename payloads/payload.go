@@ -3,9 +3,9 @@ package payloads
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	tykenc "github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"time"
-	"fmt"
 )
 
 // A payload is a type of object that can be used to send around a queue managed by TCF
@@ -20,11 +20,11 @@ type Payload interface {
 
 // DefaultPayload is the default payload that is used by TCF
 type DefaultPayload struct {
-	Message interface{}
-	rawMessage  interface{}
-	Encoding tykenc.Encoding
-	Sig      string
-	Time     int64
+	Message    interface{}
+	rawMessage interface{}
+	Encoding   tykenc.Encoding
+	Sig        string
+	Time       int64
 }
 
 func (p *DefaultPayload) TimeStamp() time.Time {
@@ -34,7 +34,7 @@ func (p *DefaultPayload) TimeStamp() time.Time {
 // Verify will check the signature if enabled
 func (p *DefaultPayload) Verify() error {
 	if p.Message == nil {
-		return errors.New("No message to verify, Message is nil")
+		return nil
 	}
 
 	switch p.Message.(type) {
@@ -76,6 +76,8 @@ func (p *DefaultPayload) getBytes() ([]byte, error) {
 		return p.Message.([]byte), nil
 	case string:
 		return []byte(p.Message.(string)), nil
+	case nil:
+		return []byte("{}"), nil
 	default:
 		return []byte{}, errors.New("Can't convert type to byte array")
 	}
@@ -107,11 +109,11 @@ func (p *DefaultPayload) SetEncoding(enc tykenc.Encoding) {
 
 func (p *DefaultPayload) Copy() Payload {
 	np := &DefaultPayload{
-		Message:  p.Message,
+		Message:    p.Message,
 		rawMessage: p.rawMessage,
-		Encoding: p.Encoding,
-		Sig:      p.Sig,
-		Time:     p.Time,
+		Encoding:   p.Encoding,
+		Sig:        p.Sig,
+		Time:       p.Time,
 	}
 
 	return np

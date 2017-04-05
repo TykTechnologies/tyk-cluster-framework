@@ -37,4 +37,3 @@ func TestUnmarshal(t *testing.T) {
 		t.Fatal("Incorrect message data")
 	}
 }
-

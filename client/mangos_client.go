@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/pub"
 	"github.com/go-mangos/mangos/protocol/sub"
 	"github.com/go-mangos/mangos/transport/tcp"
-	"sync"
-	"time"
 	"net/url"
 	"strconv"
-	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
+	"sync"
+	"time"
 )
 
 type socketPayloadHandler struct {
@@ -48,7 +48,7 @@ type MangosClient struct {
 	ClientHandler
 	URL string
 
-	pubSock 	   mangos.Socket
+	pubSock            mangos.Socket
 	Encoding           encoding.Encoding
 	payloadHandlers    socketMap
 	broadcastKillChans map[string]chan struct{}
@@ -171,7 +171,7 @@ func (m *MangosClient) startListening(sock mangos.Socket, channel string) {
 		if msg, err = sock.Recv(); err != nil {
 			log.WithFields(logrus.Fields{
 				"prefix": "tcf.MangosClient",
-			}).Fatalf("Cannot recv: ", err.Error())
+			}).Fatal("Cannot recv: ", err.Error())
 		}
 
 		log.Debug("[CLIENT] Received: raw data: ", string(msg))
@@ -318,4 +318,3 @@ func (m *MangosClient) onPortAction(action mangos.PortAction, data mangos.Port) 
 	}).Debug("New publish connection from: ", data.Address())
 	return true
 }
-

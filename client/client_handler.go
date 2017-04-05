@@ -1,8 +1,8 @@
 package client
 
 import (
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"fmt"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
 // ClientHandler provides helper functions and wrappers to decode a raw message into a payload object
@@ -16,10 +16,12 @@ func (c ClientHandler) HandleRawMessage(rawMessage interface{}, payloadHandler P
 	msgHandler := NewMessageHandler()
 	asPayload, err := msgHandler.HandleRawMessage(rawMessage, enc)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
 	if err = asPayload.Verify(); err != nil {
+		fmt.Println(err)
 		return fmt.Errorf("Payload verification failed: %v", err)
 	}
 

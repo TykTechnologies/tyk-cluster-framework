@@ -3,8 +3,8 @@ package client
 import (
 	"encoding/json"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
-	"testing"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
+	"testing"
 )
 
 func TestHandleRawMessage(t *testing.T) {

@@ -52,8 +52,8 @@ type Service struct {
 	addr      string
 	tlsConfig *TLSConfig
 
-	store      Store
-	StorageAPI *StorageAPI
+	store       Store
+	StorageAPI  *StorageAPI
 	EmbeddedAPI *EmbeddedService
 }
 
@@ -68,11 +68,11 @@ func New(addr string, store Store, tlsConfig *TLSConfig) *Service {
 	eAPI := NewEmbeddedService(tls, sAPI)
 
 	return &Service{
-		addr:       addr,
-		store:      store,
-		StorageAPI: sAPI,
+		addr:        addr,
+		store:       store,
+		StorageAPI:  sAPI,
 		EmbeddedAPI: eAPI,
-		tlsConfig:  tlsConfig,
+		tlsConfig:   tlsConfig,
 	}
 }
 

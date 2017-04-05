@@ -5,27 +5,27 @@ import (
 	"fmt"
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/pub"
+	"github.com/go-mangos/mangos/protocol/sub"
 	"github.com/go-mangos/mangos/transport/tcp"
 	"net/url"
 	"strconv"
-	"github.com/go-mangos/mangos/protocol/sub"
 	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 type socketMap struct {
 	KillChan chan struct{}
-	Sock mangos.Socket
+	Sock     mangos.Socket
 }
 
 type MangosServer struct {
-	listening bool
-	relay      mangos.Socket
+	listening             bool
+	relay                 mangos.Socket
 	inboundMessageClients map[string]*socketMap
-	conf      *MangosServerConf
-	encoding  encoding.Encoding
+	conf                  *MangosServerConf
+	encoding              encoding.Encoding
 }
 
 type MangosServerConf struct {

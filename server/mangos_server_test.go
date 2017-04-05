@@ -2,8 +2,8 @@ package server
 
 import (
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
-	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"testing"
 	"time"
 )
@@ -60,7 +60,6 @@ func TestMangosServer(t *testing.T) {
 			t.Fatal("Connections should be larger than 0!")
 		}
 
-
 		c.Stop()
 	})
 
@@ -70,7 +69,6 @@ func TestMangosServer(t *testing.T) {
 		resultChan := make(chan testPayloadData)
 		ch := "tcf.test.mangos-server.server-publish"
 		msg := "Tyk Cluster Framework: Server"
-
 
 		if c, err = client.NewClient("mangos://127.0.0.1:9100", encoding.JSON); err != nil {
 			t.Fatal(err)
@@ -110,9 +108,7 @@ func TestMangosServer(t *testing.T) {
 			t.Fatalf("Channel wait timed out")
 		}
 
-
 		time.Sleep(1 * time.Second)
-
 
 		// This is ugly, but mangos handles connect in the background, so we need to wait :-/
 		if err = s.Publish(ch, dp); err != nil {

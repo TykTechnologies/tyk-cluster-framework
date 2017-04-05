@@ -1,11 +1,11 @@
 package client
 
 import (
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
-	"testing"
-	"strings"
-	"runtime"
 	"fmt"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"runtime"
+	"strings"
+	"testing"
 )
 
 func TestNewClient(t *testing.T) {

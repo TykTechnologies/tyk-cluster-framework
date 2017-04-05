@@ -1,17 +1,17 @@
 package client
 
 import (
-	"testing"
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"encoding/json"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
+	"testing"
 )
 
 func TestDefaultMessageHandler(t *testing.T) {
 	mh := NewMessageHandler()
 	var p payloads.Payload
 	var err error
-	rawMessage := testPayloadData{FullName:"Foo"}
+	rawMessage := testPayloadData{FullName: "Foo"}
 	if p, err = payloads.NewPayload(rawMessage); err != nil {
 		t.Fatal(err)
 	}

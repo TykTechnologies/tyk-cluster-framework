@@ -5,17 +5,17 @@ import (
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 
 	"fmt"
-	"time"
-	"log"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"log"
+	"time"
 )
-
 
 type testPayloadData struct {
 	FullName string
 }
 
 const CHANNAME string = "tcf.names"
+
 var tcfClient client.Client
 
 func main() {
@@ -32,7 +32,7 @@ func main() {
 	// Subscribe to some stuff
 	s, subErr := tcfClient.Subscribe(CHANNAME, func(payload payloads.Payload) {
 		var d testPayloadData
-		if decErr := payload.DecodeMessage(&d);  decErr != nil {
+		if decErr := payload.DecodeMessage(&d); decErr != nil {
 			log.Fatalf("Decode payload failed: %v was: %v\n", decErr, payload)
 		}
 
@@ -56,7 +56,6 @@ func main() {
 
 	// Send some messages
 	go sendTestMessages("Foo")
-
 
 	// The above does not block, so lets wait so we can get all the messages
 	time.Sleep(5 * time.Second)
