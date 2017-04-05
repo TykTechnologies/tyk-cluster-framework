@@ -1,5 +1,9 @@
 package rafty
 
+// Rafty is the raft k/v implementation, heavily influenced by
+// the hraftd server (https://github.com/otoolep/hraftd) written by Philip O'Toole
+// and based on Hashicorps Raft implementation
+
 import (
 	"bytes"
 	"encoding/json"
@@ -22,6 +26,7 @@ import (
 var log = logger.GetLogger()
 var logPrefix string = "tcf.rafty"
 
+// StartServer will start a rafty server based on it's configuration. Most of this is handled by the distributed store parent library.
 func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signal, broadcastWith client.Client, serviceChan chan *httpd.EmbeddedService) {
 	log.Info("Log level: ", os.Getenv("TYK_LOGLEVEL"))
 	if raftyConfig == nil {

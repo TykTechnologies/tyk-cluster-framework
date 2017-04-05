@@ -14,12 +14,15 @@ import (
 var log *logrus.Logger = logger.GetLogger()
 var DistributedStores map[string]chan os.Signal = make(map[string]chan os.Signal)
 
+// Distributed Store provides a distributed key/value store using the raft protocol (see the rafty sub-package), it
+// provides a full HTTP and embedded API for interaction with the store
 type DistributedStore struct {
 	config     *rafty.Config
 	StorageAPI *httpd.EmbeddedService
 	serverID   string
 }
 
+// NewDistributedStore will create a new DS object ready to start serving
 func NewDistributedStore(config *rafty.Config) (*DistributedStore, error) {
 	d := DistributedStore{}
 
@@ -37,6 +40,8 @@ func NewDistributedStore(config *rafty.Config) (*DistributedStore, error) {
 	return &d, nil
 }
 
+// Start will start the store, set joinAddress to force a connection to an existing cluster, and set broadcastWith to a
+// tcf Client to enable auto-discovery of a cluster when bootstrapping.
 func (d *DistributedStore) Start(joinAddress string, broadcastWith client.Client) {
 	u, _ := uuid.NewV4()
 	serverID := u.String()
@@ -54,6 +59,7 @@ func (d *DistributedStore) Start(joinAddress string, broadcastWith client.Client
 	}).Info("Distrubuted storage engine started: ", serverID)
 }
 
+// Stop will shut down the store and leave the cluster. it;s recommend to stop the leader last.
 func (d *DistributedStore) Stop() error {
 	killChan, found := DistributedStores[d.serverID]
 	if !found {
