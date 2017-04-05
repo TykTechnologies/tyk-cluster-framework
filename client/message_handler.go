@@ -6,12 +6,15 @@ import (
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
+// MessageHandler is an interface for the methods that pre-process a message prior to handing it over to a handler
 type MessageHandler interface {
 	HandleRawMessage(interface{}, encoding.Encoding) (payloads.Payload, error)
 }
 
+// The DefaultMessageHandler is the message handler used by default in TCF
 type DefaultMessageHandler struct{}
 
+// HandleRawMessage will handle the inbound message from the wire to be processed by the payload
 func (m *DefaultMessageHandler) HandleRawMessage(rawMessage interface{}, enc encoding.Encoding) (payloads.Payload, error) {
 	switch rawMessage.(type) {
 	case []byte:

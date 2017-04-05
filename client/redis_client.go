@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+// RedisClient provides an abstraction over redis' pub/sub mechanism, it only works with
+// redis at the moment, not redis cluster, however this should be ok as redis cluster
+// does not cluster pub/sub.
 type RedisClient struct {
 	ClientHandler
 	URL                string
@@ -20,16 +23,19 @@ type RedisClient struct {
 	SubscribeChan      chan string
 }
 
+// Init will initialise the redis client
 func (c *RedisClient) Init(config interface{}) error {
 	c.broadcastKillChans = make(map[string]chan struct{})
 	c.SubscribeChan = make(chan string)
 	return nil
 }
 
+// Stop will close all redis connections
 func (c *RedisClient) Stop() error {
 	return c.pool.Close()
 }
 
+// Connect will set up the redis connection
 func (c *RedisClient) Connect() error {
 	if c.URL == "" {
 		return errors.New("Redis URL not set!!")
@@ -47,6 +53,7 @@ func (c *RedisClient) Connect() error {
 	return nil
 }
 
+// Publish will publish a Payload on the redis pub/sub channel
 func (c *RedisClient) Publish(filter string, p payloads.Payload) error {
 	if TCFConfig.SetEncodingForPayloadsGlobally {
 		p.SetEncoding(c.Encoding)
@@ -97,6 +104,7 @@ func (c *RedisClient) notifySub(channel string) {
 	}
 }
 
+// Subscribe will create a subscription on the redis topic and attach a handler
 func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) (chan string, error) {
 
 	// Create a subscription and a hold loop, the outer loop is to re-create the object if it breaks.
@@ -140,6 +148,7 @@ func (c *RedisClient) Subscribe(filter string, handler PayloadHandler) (chan str
 	return c.SubscribeChan, nil
 }
 
+// SetEncoding sets the payload encoding to use when moving messages around
 func (c *RedisClient) SetEncoding(enc encoding.Encoding) error {
 	c.Encoding = enc
 	return nil
@@ -205,6 +214,7 @@ func (c *RedisClient) setupRedisPool(s string) (*redis.Pool, error) {
 	return thisClientPool, nil
 }
 
+// Broadcast will publish a periodic message to a topic at a preset interval
 func (c *RedisClient) Broadcast(filter string, payload payloads.Payload, interval int) error {
 	_, found := c.broadcastKillChans[filter]
 	if found {
@@ -245,6 +255,7 @@ func (c *RedisClient) Broadcast(filter string, payload payloads.Payload, interva
 	return nil
 }
 
+// StopBroadcast will stop a broadcast
 func (c *RedisClient) StopBroadcast(f string) error {
 	killChan, found := c.broadcastKillChans[f]
 	if !found {

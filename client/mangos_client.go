@@ -44,6 +44,8 @@ func (p *socketMap) Get(filter string) (mangos.Socket, PayloadHandler, bool) {
 	return h.socket, h.handler, found
 }
 
+// MangosClient is a wrapper around the Mangos framework and provides a simple way to create a pub/sub network where
+// all clients can publish to a server and the server can publish to a client using topics
 type MangosClient struct {
 	ClientHandler
 	URL string
@@ -55,6 +57,7 @@ type MangosClient struct {
 	SubscribeChan      chan string
 }
 
+// Init will initialise a MangosClient
 func (m *MangosClient) Init(config interface{}) error {
 
 	m.SubscribeChan = make(chan string)
@@ -63,32 +66,20 @@ func (m *MangosClient) Init(config interface{}) error {
 		payloadHandlers: make(map[string]*socketPayloadHandler),
 	}
 
-	//var err error
-	//if m.sock, err = pub.NewSocket(); err != nil {
-	//	return fmt.Errorf("can't get new socket: %s", err.Error())
-	//}
-	//m.sock.AddTransport(tcp.NewTransport())
-
 	return nil
 }
 
+// Connect will connect a MangosClient to a MangosServer
 func (m *MangosClient) Connect() error {
-	//var err error
 
 	m.startMessagePublisher()
 
-	//if err = m.sock.Dial(m.URL); err != nil {
-	//	return fmt.Errorf("can't dial on socket: %s", err.Error())
-	//}
-
 	return nil
 }
 
+// Stop will stop the MangosClient and close open connections
 func (m *MangosClient) Stop() error {
 	var err error
-	//if err = m.sock.Close(); err != nil {
-	//	return err
-	//}
 
 	if err = m.pubSock.Close(); err != nil {
 		return err
@@ -97,6 +88,7 @@ func (m *MangosClient) Stop() error {
 	return nil
 }
 
+// Publish will publish a Payload to a topic, the underlying topology is handled by the library
 func (m *MangosClient) Publish(filter string, payload payloads.Payload) error {
 	if payload == nil {
 		return nil
@@ -196,6 +188,7 @@ func (m *MangosClient) startListening(sock mangos.Socket, channel string) {
 
 }
 
+// Subscribe will subscribe to a topic and attache a PayloadHandler, this is only available in the client
 func (m *MangosClient) Subscribe(filter string, handler PayloadHandler) (chan string, error) {
 	var sock mangos.Socket
 	var err error
@@ -222,11 +215,13 @@ func (m *MangosClient) Subscribe(filter string, handler PayloadHandler) (chan st
 	return m.SubscribeChan, nil
 }
 
+// Set Encoding will set the message encoding for payloads sent over the wire
 func (m *MangosClient) SetEncoding(enc encoding.Encoding) error {
 	m.Encoding = enc
 	return nil
 }
 
+// Broadcast will send a payload at a predefined rate, call StopBroadcast() to halt.
 func (m *MangosClient) Broadcast(filter string, payload payloads.Payload, interval int) error {
 	_, found := m.broadcastKillChans[filter]
 	if found {
@@ -267,6 +262,7 @@ func (m *MangosClient) Broadcast(filter string, payload payloads.Payload, interv
 	return nil
 }
 
+// StopBroadcast will stop a broadcasted payload.
 func (m *MangosClient) StopBroadcast(f string) error {
 	killChan, found := m.broadcastKillChans[f]
 	if !found {

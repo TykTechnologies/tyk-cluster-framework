@@ -7,12 +7,14 @@ import (
 
 var log = logger.GetLogger()
 
+// RedisOptions provides extended redis options to manage connectivity
 type RedisOptions struct {
 	MaxIdle     int
 	MaxActive   int
 	IdleTimeout int
 }
 
+// Config represents the main options to use in the framework
 type Config struct {
 	PayloadType                    payloads.PayloadType
 	MessageHandlerType             MessageHandlerType
