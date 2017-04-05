@@ -14,10 +14,12 @@ func init() {
 	defaultPayloadConfig.payloadType = PayloadDefaultPayload
 }
 
+// St the verifier to use for payloads
 func SetVerifier(v verifier.Verifier) {
 	defaultPayloadConfig.verifier = v
 }
 
+// Set the payload type to use when encoding and decoding payloads
 func SetPayloadType(p PayloadType) {
 	defaultPayloadConfig.payloadType = p
 }

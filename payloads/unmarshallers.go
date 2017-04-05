@@ -6,6 +6,7 @@ import (
 	tykenc "github.com/TykTechnologies/tyk-cluster-framework/encoding"
 )
 
+// Unmarshall provides a generic way to unmarshal payloads
 func Unmarshal(into Payload, data interface{}, enc tykenc.Encoding) error {
 	switch enc {
 	case tykenc.JSON:

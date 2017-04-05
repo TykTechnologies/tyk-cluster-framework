@@ -18,7 +18,6 @@ func Marshal(from Payload, enc tykEnc.Encoding) (interface{}, error) {
 	}
 }
 
-// marshalJSON will
 func marshalJSON(from Payload) (interface{}, error) {
 	// Copy the object, we don;t want to operate on the same payload (NOT IDEAL)
 	newPayload := from.Copy()

@@ -20,6 +20,10 @@ type socketMap struct {
 	Sock     mangos.Socket
 }
 
+// MangosServer provides a server implementation to provide as an anchor for a Mangos-based pub/sub network. It
+// will open a return connection to each connected client to enable two-way publishing and relay published
+// messages from clients to the rest of the network so it behaves in a similar way to a redis pub/sub system.
+// The server can also publish messages, but does not have a subscription facility.
 type MangosServer struct {
 	listening             bool
 	relay                 mangos.Socket
@@ -28,6 +32,7 @@ type MangosServer struct {
 	encoding              encoding.Encoding
 }
 
+// MangosServerConf provides the configuration details for a MangosServer
 type MangosServerConf struct {
 	Encoding encoding.Encoding
 	listenOn string
@@ -37,6 +42,7 @@ func newMangoConfig(listenOn string) *MangosServerConf {
 	return &MangosServerConf{listenOn: listenOn, Encoding: encoding.JSON}
 }
 
+// init will set up the initial state of the server
 func (s *MangosServer) Init(config interface{}) error {
 	s.conf = config.(*MangosServerConf)
 	s.inboundMessageClients = make(map[string]*socketMap)
@@ -45,6 +51,7 @@ func (s *MangosServer) Init(config interface{}) error {
 	return nil
 }
 
+// Connections returns a list of connected clients, used mainly in testing
 func (s *MangosServer) Connections() []string {
 	conns := make([]string, len(s.inboundMessageClients))
 	c := 0
@@ -248,15 +255,18 @@ func (s *MangosServer) Listen() error {
 	return errors.New("Already listening")
 }
 
+// Server does not broadcast
 func (s *MangosServer) EnableBroadcast(enabled bool) {
 	// no op
 }
 
+// SetEncoding will set the encoding to use on published payloads
 func (s *MangosServer) SetEncoding(enc encoding.Encoding) error {
 	s.encoding = enc
 	return nil
 }
 
+// Stop will stop the server
 func (s *MangosServer) Stop() error {
 	if s.listening {
 		return s.relay.Close()
@@ -264,6 +274,7 @@ func (s *MangosServer) Stop() error {
 	return errors.New("Already stopped")
 }
 
+// Publish will send a Payload from the server to connected clients on the specified topic
 func (s *MangosServer) Publish(filter string, payload payloads.Payload) error {
 	if payload == nil {
 		return nil

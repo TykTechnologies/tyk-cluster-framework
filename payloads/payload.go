@@ -27,6 +27,7 @@ type DefaultPayload struct {
 	Time       int64
 }
 
+// TimeStamp will set the TS of the payload
 func (p *DefaultPayload) TimeStamp() time.Time {
 	return time.Unix(p.Time, 0)
 }
@@ -103,10 +104,12 @@ func (p *DefaultPayload) DecodeMessage(into interface{}) error {
 	return nil
 }
 
+// SetEncoding will set the encoding of the payloads
 func (p *DefaultPayload) SetEncoding(enc tykenc.Encoding) {
 	p.Encoding = enc
 }
 
+// Copy will create a copy of the object
 func (p *DefaultPayload) Copy() Payload {
 	np := &DefaultPayload{
 		Message:    p.Message,

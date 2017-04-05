@@ -12,6 +12,8 @@ const (
 	PayloadDefaultPayload PayloadType = "PayloadDefaultPayload"
 )
 
+// NewPayload should be used to construct a Payload object and have the remainder properly initialised.
+// Returns a Payload that can be sent over the wire
 func NewPayload(msg interface{}) (Payload, error) {
 	switch defaultPayloadConfig.payloadType {
 	case PayloadDefaultPayload:
