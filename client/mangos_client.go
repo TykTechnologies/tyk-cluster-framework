@@ -280,10 +280,12 @@ func (m *MangosClient) startMessagePublisher() error {
 		return nil
 	}
 
-	var u *url.URL
-	if u, err = url.Parse(m.URL); err != nil {
+	var e *url.URL
+	if e, err = url.Parse(m.URL); err != nil {
 		return err
 	}
+
+	u := ExtendedURL{URL: e}
 
 	var p int
 	if p, err = strconv.Atoi(u.Port()); err != nil {
@@ -292,7 +294,7 @@ func (m *MangosClient) startMessagePublisher() error {
 	}
 
 	// The return address must always be inbound port+1 in order to find the correct publisher
-	returnAddress := fmt.Sprintf("%v://%v:%v", u.Scheme, u.Hostname(), p+1)
+	returnAddress := fmt.Sprintf("%v://%v:%v", u.URL.Scheme, u.Hostname(), p+1)
 	log.Debug("Creating Publisher...")
 
 	m.pubSock.AddTransport(tcp.NewTransport())
