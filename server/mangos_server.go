@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
 )
 
 type socketMap struct {
@@ -173,10 +174,12 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 	}
 	cSock.AddTransport(tcp.NewTransport())
 
-	var u *url.URL
-	if u, err = url.Parse(address); err != nil {
+	var e *url.URL
+	if e, err = url.Parse(address); err != nil {
 		return nil, err
 	}
+
+	u := helpers.ExtendedURL{URL: e}
 
 	var p int
 	if p, err = strconv.Atoi(u.Port()); err != nil {
@@ -184,7 +187,7 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 	}
 
 	// The return address must always be inbound port+1 in order to find the correct publisher
-	returnAddress := fmt.Sprintf("%v://%v:%v", u.Scheme, u.Hostname(), p+1)
+	returnAddress := fmt.Sprintf("%v://%v:%v", u.URL.Scheme, u.Hostname(), p+1)
 
 	if err = cSock.Dial(returnAddress); err != nil {
 		return nil, fmt.Errorf("can't dial out on socket: %s", err.Error())

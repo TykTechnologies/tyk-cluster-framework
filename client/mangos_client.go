@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
 )
 
 type socketPayloadHandler struct {
@@ -285,7 +286,7 @@ func (m *MangosClient) startMessagePublisher() error {
 		return err
 	}
 
-	u := ExtendedURL{URL: e}
+	u := helpers.ExtendedURL{URL: e}
 
 	var p int
 	if p, err = strconv.Atoi(u.Port()); err != nil {
