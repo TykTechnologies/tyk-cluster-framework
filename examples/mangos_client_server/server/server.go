@@ -11,7 +11,7 @@ func main() {
 	var s server.Server
 	var sErr error
 	// Must be a specific IP, otherwise client-side publishing will fail
-	if s, sErr = server.NewServer("mangos://127.0.0.1:9100", encoding.JSON); sErr != nil {
+	if s, sErr = server.NewServer("mangos://localhost:9001", encoding.JSON); sErr != nil {
 		log.Fatal(sErr)
 	}
 

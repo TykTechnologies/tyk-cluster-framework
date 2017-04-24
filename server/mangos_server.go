@@ -116,10 +116,12 @@ func (s *MangosServer) receiveAndRelay(sock *socketMap) {
 
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.MangosServer",
-	}).Debug("Ready to relay...")
+	}).Info("Ready to relay...")
 
 	for {
 		msg, err = sock.Sock.Recv()
+
+		fmt.Println(msg)
 
 		if err != nil {
 			log.WithFields(logrus.Fields{
@@ -186,9 +188,11 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 		return nil, err
 	}
 
-	// The return address must always be inbound port+1 in order to find the correct publisher
-	returnAddress := fmt.Sprintf("%v://%v:%v", u.URL.Scheme, u.Hostname(), p+1)
 
+	// The return address must always be inbound port+1 in order to find the correct publisher
+	// TODO: This fails in a docker environment. But works if a hostname is used instead of an IP address
+	returnAddress := fmt.Sprintf("%v://%v:%v", u.URL.Scheme, u.Hostname(), p+1)
+	log.Info("DIALING: ", returnAddress)
 	if err = cSock.Dial(returnAddress); err != nil {
 		return nil, fmt.Errorf("can't dial out on socket: %s", err.Error())
 	}

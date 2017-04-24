@@ -20,7 +20,7 @@ var tcfClient client.Client
 
 func main() {
 	var err error
-	if tcfClient, err = client.NewClient("mangos://127.0.0.1:9100", encoding.JSON); err != nil {
+	if tcfClient, err = client.NewClient("mangos://127.0.0.1:9001", encoding.JSON); err != nil {
 		log.Fatal(err)
 	}
 
@@ -28,6 +28,8 @@ func main() {
 	if err = tcfClient.Connect(); err != nil {
 		log.Fatal(err)
 	}
+
+	time.Sleep(300 * time.Millisecond)
 
 	// Subscribe to some stuff
 	s, subErr := tcfClient.Subscribe(CHANNAME, func(payload payloads.Payload) {
@@ -58,7 +60,7 @@ func main() {
 	go sendTestMessages("Foo")
 
 	// The above does not block, so lets wait so we can get all the messages
-	time.Sleep(5 * time.Second)
+	time.Sleep(10000 * time.Second)
 }
 
 func sendTestMessages(Payload string) {

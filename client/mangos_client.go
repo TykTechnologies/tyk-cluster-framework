@@ -199,7 +199,7 @@ func (m *MangosClient) Subscribe(filter string, handler PayloadHandler) (chan st
 	}
 	sock.AddTransport(tcp.NewTransport())
 
-	log.Debug("Dialing: ", m.URL)
+	log.Info("Dialing: ", m.URL)
 	if err = sock.Dial(m.URL); err != nil {
 		return m.SubscribeChan, fmt.Errorf("can't dial on sub socket: %s", err.Error())
 	}
@@ -295,8 +295,8 @@ func (m *MangosClient) startMessagePublisher() error {
 	}
 
 	// The return address must always be inbound port+1 in order to find the correct publisher
-	returnAddress := fmt.Sprintf("%v://%v:%v", u.URL.Scheme, u.Hostname(), p+1)
-	log.Debug("Creating Publisher...")
+	returnAddress := fmt.Sprintf("tcp://0.0.0.0:%v", p+1)
+	log.Info("Creating Publisher...")
 
 	m.pubSock.AddTransport(tcp.NewTransport())
 	if err = m.pubSock.Listen(returnAddress); err != nil {
@@ -304,16 +304,19 @@ func (m *MangosClient) startMessagePublisher() error {
 		return errors.New("Can't listen on pub socket")
 	}
 
+	log.Info("Setting port hook")
 	m.pubSock.SetPortHook(m.onPortAction)
 
-	log.Debug("Created Publisher on: ", returnAddress)
+	log.Info("Created Publisher on: ", returnAddress)
 
 	return nil
 }
 
 func (m *MangosClient) onPortAction(action mangos.PortAction, data mangos.Port) bool {
+	fmt.Println(data.Address())
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.MangosClient",
-	}).Debug("New publish connection from: ", data.Address())
+	}).Info("New publish connection from: ", data.Address())
+
 	return true
 }
