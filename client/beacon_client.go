@@ -2,14 +2,15 @@ package client
 
 import (
 	"errors"
+	"runtime"
+	"sync"
+	"time"
+
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/client/beacon"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"gopkg.in/vmihailenco/msgpack.v2"
-	"runtime"
-	"sync"
-	"time"
 )
 
 // payloadMap is a map that connects channel filter names to handlers so that
@@ -204,10 +205,8 @@ func (b *BeaconClient) Broadcast(filter string, payload payloads.Payload, interv
 	switch data.(type) {
 	case []byte:
 		encodedPayload = data.([]byte)
-		break
 	case string:
 		encodedPayload = []byte(data.(string))
-		break
 	default:
 		return errors.New("Encoded data is not supported")
 	}

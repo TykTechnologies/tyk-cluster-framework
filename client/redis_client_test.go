@@ -1,11 +1,12 @@
 package client
 
 import (
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
-	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 // If Redis is remote, can be set with an env variable: TCF_TEST_REDIS,
@@ -327,7 +328,7 @@ func TestPayload(t *testing.T) {
 				if v.FullName != chMsg {
 					t.Fatalf("Unexpected return value: %v", v)
 				}
-				msgCnt += 1
+				msgCnt++
 			case <-time.After(time.Second * 2):
 				// fall through
 			}

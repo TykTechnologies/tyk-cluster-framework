@@ -1,10 +1,11 @@
 package client
 
 import (
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
-	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"testing"
 	"time"
+
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 func TestBeaconClient(t *testing.T) {
@@ -48,7 +49,7 @@ func TestBeaconClient(t *testing.T) {
 			if v.FullName != chMsg {
 				t.Fatalf("Unexpected return value: %v", v)
 			}
-			msgCnt += 1
+			msgCnt++
 		case <-time.After(time.Second * 2):
 			// fall through
 		}

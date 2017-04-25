@@ -1,11 +1,12 @@
 package client
 
 import (
+	"testing"
+	"time"
+
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/TykTechnologies/tyk-cluster-framework/server"
-	"testing"
-	"time"
 )
 
 type testPayloadData struct {
@@ -341,7 +342,7 @@ func TestMangosClient(t *testing.T) {
 				if v.FullName != chMsg {
 					t.Fatalf("Unexpected return value: %v", v)
 				}
-				msgCnt += 1
+				msgCnt++
 			case <-time.After(time.Second * 2):
 				// fall through
 			}
@@ -405,7 +406,7 @@ func TestMangosClient(t *testing.T) {
 				if v.FullName != chMsg {
 					t.Fatalf("Unexpected return value: %v", v)
 				}
-				msgCnt += 1
+				msgCnt++
 			case <-time.After(time.Second * 2):
 				// fall through
 			}

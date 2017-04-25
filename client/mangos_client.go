@@ -3,18 +3,19 @@ package client
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/pub"
 	"github.com/go-mangos/mangos/protocol/sub"
 	"github.com/go-mangos/mangos/transport/tcp"
-	"net/url"
-	"strconv"
-	"sync"
-	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
 )
 
 type socketPayloadHandler struct {
@@ -80,13 +81,7 @@ func (m *MangosClient) Connect() error {
 
 // Stop will stop the MangosClient and close open connections
 func (m *MangosClient) Stop() error {
-	var err error
-
-	if err = m.pubSock.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return m.pubSock.Close()
 }
 
 // Publish will publish a Payload to a topic, the underlying topology is handled by the library
@@ -104,10 +99,8 @@ func (m *MangosClient) Publish(filter string, payload payloads.Payload) error {
 	switch data.(type) {
 	case []byte:
 		encodedPayload = data.([]byte)
-		break
 	case string:
 		encodedPayload = []byte(data.(string))
-		break
 	default:
 		return errors.New("Encoded data is not supported")
 	}
@@ -216,7 +209,7 @@ func (m *MangosClient) Subscribe(filter string, handler PayloadHandler) (chan st
 	return m.SubscribeChan, nil
 }
 
-// Set Encoding will set the message encoding for payloads sent over the wire
+// SetEncoding will set the message encoding for payloads sent over the wire
 func (m *MangosClient) SetEncoding(enc encoding.Encoding) error {
 	m.Encoding = enc
 	return nil
@@ -231,8 +224,7 @@ func (m *MangosClient) Broadcast(filter string, payload payloads.Payload, interv
 
 	killChan := make(chan struct{})
 	go func(f string, p payloads.Payload, i int, k chan struct{}) {
-		var ticker <-chan time.Time
-		ticker = time.After(time.Duration(i) * time.Second)
+		ticker := time.After(time.Duration(i) * time.Second)
 
 		for {
 			select {

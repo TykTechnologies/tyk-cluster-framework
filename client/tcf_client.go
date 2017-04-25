@@ -25,7 +25,7 @@ type Config struct {
 }
 
 // Global Client config
-var TCFConfig Config = Config{
+var TCFConfig = Config{
 	PayloadType:                    payloads.PayloadDefaultPayload,
 	MessageHandlerType:             MessageHandlerDefaultMessageHandler,
 	SetEncodingForPayloadsGlobally: true,
