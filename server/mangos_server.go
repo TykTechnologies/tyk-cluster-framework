@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"time"
 	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
+	"net"
 )
 
 type socketMap struct {
@@ -169,6 +170,7 @@ func (s *MangosServer) listenForMessagesToRelayForAddress(address string, killCh
 }
 
 func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket, error) {
+	log.Info("Address is: ", address)
 	var cSock mangos.Socket
 	var err error
 	if cSock, err = sub.NewSocket(); err != nil {
@@ -183,15 +185,18 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 
 	u := helpers.ExtendedURL{URL: e}
 
-	var p int
-	if p, err = strconv.Atoi(u.Port()); err != nil {
+	// This is very ugly
+	serverURL, _ := url.Parse(s.conf.listenOn)
+	sHelper := helpers.ExtendedURL{URL: serverURL}
+	pAsInt, err := strconv.Atoi(sHelper.Port())
+	if err != nil {
 		return nil, err
 	}
 
-
+	p := pAsInt+1
+	
 	// The return address must always be inbound port+1 in order to find the correct publisher
-	// TODO: This fails in a docker environment. But works if a hostname is used instead of an IP address
-	returnAddress := fmt.Sprintf("%v://%v:%v", u.URL.Scheme, u.Hostname(), p+1)
+	returnAddress := fmt.Sprintf("%v://%v:%v", u.URL.Scheme, u.Hostname(), strconv.Itoa(p))
 	log.Info("DIALING: ", returnAddress)
 	if err = cSock.Dial(returnAddress); err != nil {
 		return nil, fmt.Errorf("can't dial out on socket: %s", err.Error())
@@ -220,7 +225,14 @@ func (s *MangosServer) handleNewConnection(data mangos.Port) error {
 	}).Info("New inbound connection from: ", data.Address())
 
 	killChan := make(chan struct{})
-	cSock, err := s.connectToClientForMessages(data.Address())
+	tcpAddr, err := data.GetProp("REMOTE-ADDR")
+	if err != nil {
+		log.Error("Cannot get remote address: ", err)
+		return err
+	}
+
+	addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).String())
+	cSock, err := s.connectToClientForMessages(addr)
 	if err != nil {
 		return err
 	}
