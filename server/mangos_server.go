@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/pub"
 	"github.com/go-mangos/mangos/protocol/sub"
 	"github.com/go-mangos/mangos/transport/tcp"
+	"net"
 	"net/url"
 	"strconv"
 	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
-	"net"
 )
 
 type socketMap struct {
@@ -194,7 +194,7 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 		return nil, err
 	}
 
-	p := pAsInt+1
+	p := pAsInt + 1
 
 	// The return address must always be inbound port+1 in order to find the correct publisher
 	returnAddress := fmt.Sprintf("%v://%v:%v", u.URL.Scheme, u.Hostname(), strconv.Itoa(p))
