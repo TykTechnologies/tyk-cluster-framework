@@ -122,8 +122,6 @@ func (s *MangosServer) receiveAndRelay(sock *socketMap) {
 	for {
 		msg, err = sock.Sock.Recv()
 
-		fmt.Println(msg)
-
 		if err != nil {
 			log.WithFields(logrus.Fields{
 				"prefix": "tcf.MangosServer",
@@ -194,10 +192,9 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 	}
 
 	p := pAsInt+1
-	
+
 	// The return address must always be inbound port+1 in order to find the correct publisher
 	returnAddress := fmt.Sprintf("%v://%v:%v", u.URL.Scheme, u.Hostname(), strconv.Itoa(p))
-	log.Info("DIALING: ", returnAddress)
 	if err = cSock.Dial(returnAddress); err != nil {
 		return nil, fmt.Errorf("can't dial out on socket: %s", err.Error())
 	}
