@@ -255,11 +255,6 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 }
 
 func (s *MangosServer) handleNewConnection(data mangos.Port) error {
-	_, f := s.inboundMessageClients[data.Address()]
-	if f {
-		return nil
-	}
-
 	killChan := make(chan struct{})
 	tcpAddr, err := data.GetProp("REMOTE-ADDR")
 	if err != nil {
@@ -268,6 +263,11 @@ func (s *MangosServer) handleNewConnection(data mangos.Port) error {
 	}
 
 	addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).String())
+	_, f := s.inboundMessageClients[addr]
+	if f {
+		return nil
+	}
+
 	cSock, err := s.connectToClientForMessages(addr)
 	if err != nil {
 		// TODO: This should be a special case!
@@ -284,7 +284,15 @@ func (s *MangosServer) handleNewConnection(data mangos.Port) error {
 }
 
 func (s *MangosServer) handleRemoveConnection(data mangos.Port) error {
-	cSock, f := s.inboundMessageClients[data.Address()]
+	tcpAddr, err := data.GetProp("REMOTE-ADDR")
+	if err != nil {
+		log.Error("Cannot get remote address: ", err)
+		return err
+	}
+
+	addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).String())
+	cSock, f := s.inboundMessageClients[addr]
+	
 	if !f {
 		return nil
 	}
