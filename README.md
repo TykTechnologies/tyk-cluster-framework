@@ -2,11 +2,11 @@
 
 This package is a wrapper around pub/sub systems to allow for a simple way to swap out underlying mechanisms (e.g. redis / zmq / amqp).
 
-The use case is to be able to swap out redis for another messaging broker such as ZMQ or AMQP without breaking the wider use of the underlying functiuonality by the dependent system.
+The use case is to be able to swap out redis for another messaging broker such as ZMQ or AMQP without breaking the wider use of the underlying functionality by the dependent system.
 
-USage example:
+Usage example:
 
-```
+```go
 package main
 
 import (
