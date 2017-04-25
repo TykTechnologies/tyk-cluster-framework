@@ -52,6 +52,7 @@ type MangosClient struct {
 	URL string
 
 	pubSock            mangos.Socket
+	disablePublisher     bool
 	Encoding           encoding.Encoding
 	payloadHandlers    socketMap
 	broadcastKillChans map[string]chan struct{}
@@ -275,6 +276,10 @@ func (m *MangosClient) StopBroadcast(f string) error {
 }
 
 func (m *MangosClient) startMessagePublisher() error {
+	if m.disablePublisher {
+		return nil
+	}
+
 	var err error
 	if m.pubSock, err = pub.NewSocket(); err != nil {
 		log.Errorf("can't get new pub socket: %s", err)

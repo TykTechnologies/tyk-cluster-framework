@@ -15,6 +15,7 @@ import (
 	"time"
 	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
 	"net"
+	"strings"
 )
 
 type socketMap struct {
@@ -38,10 +39,15 @@ type MangosServer struct {
 type MangosServerConf struct {
 	Encoding encoding.Encoding
 	listenOn string
+	disableConnectionsFromSelf bool
 }
 
-func newMangoConfig(listenOn string) *MangosServerConf {
-	return &MangosServerConf{listenOn: listenOn, Encoding: encoding.JSON}
+func newMangoConfig(listenOn string, disableConnectionsFromSelf bool) *MangosServerConf {
+	return &MangosServerConf{
+		listenOn: listenOn,
+		disableConnectionsFromSelf: disableConnectionsFromSelf,
+		Encoding: encoding.JSON,
+	}
 }
 
 // init will set up the initial state of the server
@@ -167,13 +173,47 @@ func (s *MangosServer) listenForMessagesToRelayForAddress(address string, killCh
 	return nil
 }
 
+var ConnectToSelf error = errors.New("Connect to self. Void.")
 func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket, error) {
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.MangosServer",
 	}).Info("New inbound connection from: ", address)
 
-	var cSock mangos.Socket
 	var err error
+
+	if s.conf.disableConnectionsFromSelf {
+		ifaces, err := net.Interfaces()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, i := range ifaces {
+			addrs, err := i.Addrs()
+			if err != nil {
+				return nil, err
+			}
+
+			for _, addr := range addrs {
+				var ip net.IP
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ip = v.IP
+				case *net.IPAddr:
+					ip = v.IP
+				}
+
+				if strings.Contains(address, ip.String()) {
+					log.WithFields(logrus.Fields{
+						"prefix": "tcf.MangosServer",
+					}).Info("Connection is from self! skipping.")
+					return nil, ConnectToSelf
+				}
+			}
+		}
+	}
+
+
+	var cSock mangos.Socket
 	if cSock, err = sub.NewSocket(); err != nil {
 		return nil, fmt.Errorf("can't get new socket: %s", err.Error())
 	}
@@ -230,7 +270,12 @@ func (s *MangosServer) handleNewConnection(data mangos.Port) error {
 	addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).String())
 	cSock, err := s.connectToClientForMessages(addr)
 	if err != nil {
-		return err
+		// TODO: This should be a special case!
+		if err != ConnectToSelf {
+			return err
+		}
+
+		return nil
 	}
 	s.inboundMessageClients[data.Address()] = &socketMap{KillChan: killChan, Sock: cSock}
 	go s.listenForMessagesToRelayForAddress(data.Address(), killChan)

@@ -23,7 +23,11 @@ type Client interface {
 }
 
 // NewClient will create a new client object based on the enum provided, the object will be pre-configured
-// with the defaults needed and any custom configurations passed in for the type
+// with the defaults needed and any custom configurations passed in for the type.
+// For `beacon`, it is possible to set an `?interval=time_in_ms` option to set the broadcast interval.
+// For `mangos`, it is possible to set an `?disable_publisher` boolean that stops the client from creating
+// a publishing channel, this is useful for servers that run their own clients to subscribe to themselves.
+// Should be used in conjunction with the `disable_loopback` option in the server.
 func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Client, error) {
 	parts := strings.Split(connectionString, "://")
 	if len(parts) < 2 {
@@ -97,6 +101,7 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 			return nil, err
 		}
 
+
 		parts := strings.Split(URL.Host, ":")
 		if len(parts) < 2 {
 			return nil, errors.New("No port specified")
@@ -106,8 +111,11 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 			"prefix": "tcf",
 		}).Info("Connecting to: ", url)
 
+		disablePublisher := URL.Query().Get("disable_publisher")
+
 		c := &MangosClient{
 			URL: url,
+			disablePublisher: disablePublisher != "",
 		}
 
 		c.SetEncoding(baselineEncoding)
