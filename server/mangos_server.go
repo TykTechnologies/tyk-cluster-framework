@@ -168,7 +168,10 @@ func (s *MangosServer) listenForMessagesToRelayForAddress(address string, killCh
 }
 
 func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket, error) {
-	log.Info("Address is: ", address)
+	log.WithFields(logrus.Fields{
+		"prefix": "tcf.MangosServer",
+	}).Info("New inbound connection from: ", address)
+
 	var cSock mangos.Socket
 	var err error
 	if cSock, err = sub.NewSocket(); err != nil {
@@ -216,10 +219,6 @@ func (s *MangosServer) handleNewConnection(data mangos.Port) error {
 	if f {
 		return nil
 	}
-
-	log.WithFields(logrus.Fields{
-		"prefix": "tcf.MangosServer",
-	}).Info("New inbound connection from: ", data.Address())
 
 	killChan := make(chan struct{})
 	tcpAddr, err := data.GetProp("REMOTE-ADDR")
