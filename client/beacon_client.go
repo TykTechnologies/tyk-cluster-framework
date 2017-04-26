@@ -253,3 +253,8 @@ func (b *BeaconClient) StopBroadcast(f string) error {
 	b.publishing = false
 	return nil
 }
+
+func (c *BeaconClient) SetConnectionDropHook(callback func() error) error {
+	// no-op
+	return nil
+}

@@ -20,6 +20,7 @@ type Client interface {
 	SetEncoding(encoding.Encoding) error
 	Init(interface{}) error
 	Stop() error
+	SetConnectionDropHook(func() error) error
 }
 
 // NewClient will create a new client object based on the enum provided, the object will be pre-configured

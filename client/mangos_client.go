@@ -57,6 +57,7 @@ type MangosClient struct {
 	payloadHandlers    socketMap
 	broadcastKillChans map[string]chan struct{}
 	SubscribeChan      chan string
+	onDisconnect 	   func() error
 }
 
 // Init will initialise a MangosClient
@@ -318,10 +319,25 @@ func (m *MangosClient) startMessagePublisher() error {
 }
 
 func (m *MangosClient) onPortAction(action mangos.PortAction, data mangos.Port) bool {
-	fmt.Println(data.Address())
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.MangosClient",
-	}).Info("New publish connection from: ", data.Address())
+	}).Info("New publish connection change detected")
+
+	if action == mangos.PortActionRemove {
+		if m.onDisconnect != nil {
+			if err := m.onDisconnect(); err != nil {
+				log.WithFields(logrus.Fields{
+					"prefix": "tcf.MangosClient",
+				}).Error("Disconnect callback returned error: ", err)
+			}
+		}
+
+	}
 
 	return true
+}
+
+func (m *MangosClient) SetConnectionDropHook(callback func() error) error {
+	m.onDisconnect = callback
+	return nil
 }

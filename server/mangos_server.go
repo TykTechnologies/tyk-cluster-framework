@@ -292,7 +292,7 @@ func (s *MangosServer) handleRemoveConnection(data mangos.Port) error {
 
 	addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).String())
 	cSock, f := s.inboundMessageClients[addr]
-	
+
 	if !f {
 		return nil
 	}

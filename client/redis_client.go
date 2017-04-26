@@ -265,3 +265,8 @@ func (c *RedisClient) StopBroadcast(f string) error {
 	killChan <- struct{}{}
 	return nil
 }
+
+func (c *RedisClient) SetConnectionDropHook(callback func() error) error {
+	// TODO: Implement disconnect detection
+	return nil
+}
