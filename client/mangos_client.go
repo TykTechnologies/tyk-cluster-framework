@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/pub"
@@ -14,7 +15,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
 )
 
 type socketPayloadHandler struct {
@@ -52,12 +52,12 @@ type MangosClient struct {
 	URL string
 
 	pubSock            mangos.Socket
-	disablePublisher     bool
+	disablePublisher   bool
 	Encoding           encoding.Encoding
 	payloadHandlers    socketMap
 	broadcastKillChans map[string]chan struct{}
 	SubscribeChan      chan string
-	onDisconnect 	   func() error
+	onDisconnect       func() error
 }
 
 // Init will initialise a MangosClient

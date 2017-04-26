@@ -102,7 +102,6 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 			return nil, err
 		}
 
-
 		parts := strings.Split(URL.Host, ":")
 		if len(parts) < 2 {
 			return nil, errors.New("No port specified")
@@ -115,7 +114,7 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 		disablePublisher := URL.Query().Get("disable_publisher")
 
 		c := &MangosClient{
-			URL: url,
+			URL:              url,
 			disablePublisher: disablePublisher != "",
 		}
 

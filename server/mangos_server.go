@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/pub"
 	"github.com/go-mangos/mangos/protocol/sub"
 	"github.com/go-mangos/mangos/transport/tcp"
+	"net"
 	"net/url"
 	"strconv"
-	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
-	"net"
 	"strings"
+	"time"
 )
 
 type socketMap struct {
@@ -37,16 +37,16 @@ type MangosServer struct {
 
 // MangosServerConf provides the configuration details for a MangosServer
 type MangosServerConf struct {
-	Encoding encoding.Encoding
-	listenOn string
+	Encoding                   encoding.Encoding
+	listenOn                   string
 	disableConnectionsFromSelf bool
 }
 
 func newMangoConfig(listenOn string, disableConnectionsFromSelf bool) *MangosServerConf {
 	return &MangosServerConf{
-		listenOn: listenOn,
+		listenOn:                   listenOn,
 		disableConnectionsFromSelf: disableConnectionsFromSelf,
-		Encoding: encoding.JSON,
+		Encoding:                   encoding.JSON,
 	}
 }
 
@@ -174,6 +174,7 @@ func (s *MangosServer) listenForMessagesToRelayForAddress(address string, killCh
 }
 
 var ConnectToSelf error = errors.New("Connect to self. Void.")
+
 func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket, error) {
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.MangosServer",
@@ -212,7 +213,6 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 		}
 	}
 
-
 	var cSock mangos.Socket
 	if cSock, err = sub.NewSocket(); err != nil {
 		return nil, fmt.Errorf("can't get new socket: %s", err.Error())
@@ -234,7 +234,7 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 		return nil, err
 	}
 
-	p := pAsInt+1
+	p := pAsInt + 1
 
 	// The return address must always be inbound port+1 in order to find the correct publisher
 	returnAddress := fmt.Sprintf("%v://%v:%v", u.URL.Scheme, u.Hostname(), strconv.Itoa(p))

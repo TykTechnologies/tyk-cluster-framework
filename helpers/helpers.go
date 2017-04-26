@@ -35,7 +35,6 @@ func portOnly(hostport string) string {
 	return hostport[colon+len(":"):]
 }
 
-
 func (e *ExtendedURL) Port() string {
 	return portOnly(e.URL.Host)
 }

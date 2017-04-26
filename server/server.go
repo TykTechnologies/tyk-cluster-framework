@@ -44,7 +44,6 @@ func NewServer(connectionString string, baselineEncoding encoding.Encoding) (Ser
 			return nil, err
 		}
 
-
 		parts := strings.Split(URL.Host, ":")
 		if len(parts) < 2 {
 			return nil, errors.New("No port specified")
