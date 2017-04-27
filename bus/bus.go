@@ -55,16 +55,6 @@ func (b *Bus) Connect() error {
 	}
 
 	var err error
-
-	if b.sock, err = bus.NewSocket(); err != nil {
-		return fmt.Errorf("bus.NewSocket: %s", err)
-	}
-
-	b.sock.AddTransport(tcp.NewTransport())
-	if err = b.sock.Listen(b.me); err != nil {
-		return fmt.Errorf("sock.Listen: %s", err.Error())
-	}
-
 	for _, h := range hosts {
 		if h == b.me || h == "" {
 			continue
@@ -122,6 +112,16 @@ func (b *Bus) Listen() error {
 	var err error
 	var msg []byte
 
+	if b.sock, err = bus.NewSocket(); err != nil {
+		return fmt.Errorf("bus.NewSocket: %s", err)
+	}
+
+	b.sock.AddTransport(tcp.NewTransport())
+	listenOn := fmt.Sprintf("tcp://%s", b.me)
+	if err = b.sock.Listen(listenOn); err != nil {
+		return fmt.Errorf("sock.Listen: %s", err.Error())
+	}
+
 	for {
 		if msg, err = b.sock.Recv(); err != nil {
 			return fmt.Errorf("sock.Recv: %s", err.Error())
@@ -151,7 +151,9 @@ func (b *Bus) Send(topic string, payload payloads.Payload) error {
 	}
 
 	payload.SetTopic(topic)
-	payload.SetFrom(b.GetID())
+	if payload.From() == "" {
+		payload.SetFrom(b.GetID())
+	}
 
 	data, encErr := payloads.Marshal(payload, b.enc)
 	if encErr != nil {
@@ -184,4 +186,10 @@ func (b *Bus) Send(topic string, payload payloads.Payload) error {
 	return nil
 }
 
-func (b *Bus) SendRaw(value interface{}) {}
+func (b *Bus) SendRaw(value []byte) error {
+	if err := b.sock.Send(value); err != nil {
+		return fmt.Errorf("sock.Send: %s", err.Error())
+	}
+
+	return nil
+}

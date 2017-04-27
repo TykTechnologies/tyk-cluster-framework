@@ -103,7 +103,10 @@ func (m *MangosClient) Publish(filter string, payload payloads.Payload) error {
 	}
 
 	payload.SetTopic(filter)
-	payload.SetFrom(m.GetID())
+
+	if payload.From() == "" {
+		payload.SetFrom(m.GetID())
+	}
 
 	data, encErr := payloads.Marshal(payload, m.Encoding)
 	if encErr != nil {

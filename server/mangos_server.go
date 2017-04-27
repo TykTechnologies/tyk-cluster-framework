@@ -35,7 +35,7 @@ type MangosServer struct {
 	conf                  *MangosServerConf
 	encoding              encoding.Encoding
 	id                    string
-	onPublishHook 	      func([]byte) error
+	onPublishHook 	      PublishHook
 }
 
 // MangosServerConf provides the configuration details for a MangosServer
@@ -357,7 +357,10 @@ func (s *MangosServer) Publish(filter string, payload payloads.Payload) error {
 	}
 
 	payload.SetTopic(filter)
-	payload.SetFrom(s.GetID())
+
+	if payload.From() == "" {
+		payload.SetFrom(s.GetID())
+	}
 
 	data, encErr := payloads.Marshal(payload, s.encoding)
 	if encErr != nil {
@@ -390,13 +393,13 @@ func (s *MangosServer) Publish(filter string, payload payloads.Payload) error {
 	}
 
 	if s.onPublishHook != nil {
-		s.onPublishHook(asPayload)
+		s.onPublishHook([]byte(filter), asPayload)
 	}
 
 	return nil
 }
 
-func (s *MangosServer) SetOnPublish(onPublishHook func([]byte) error) error {
+func (s *MangosServer) SetOnPublish(onPublishHook PublishHook) error {
 	s.onPublishHook = onPublishHook
 	return nil
 }

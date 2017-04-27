@@ -13,6 +13,8 @@ import (
 
 var log *logrus.Logger = logger.GetLogger()
 
+type PublishHook func([]byte, []byte) error
+
 // Server represents a server object that accepts connections for a queue service
 type Server interface {
 	Listen() error
@@ -23,7 +25,7 @@ type Server interface {
 	Connections() []string
 	Publish(string, payloads.Payload) error
 	GetID() string
-	SetOnPublish(func([]byte) error) error
+	SetOnPublish(PublishHook) error
 }
 
 // NewServer will generate a new server object based on the enum provided.

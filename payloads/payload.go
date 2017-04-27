@@ -30,7 +30,7 @@ type DefaultPayload struct {
 	Sig        string
 	Time       int64
 	Topic      string
-	from_id string
+	FromID     string
 }
 
 // TimeStamp will set the TS of the payload
@@ -39,11 +39,11 @@ func (p *DefaultPayload) TimeStamp() time.Time {
 }
 
 func (p *DefaultPayload) From() string {
-	return p.from_id
+	return p.FromID
 }
 
 func (p *DefaultPayload) SetFrom(id string) {
-	p.from_id = id
+	p.FromID = id
 }
 
 func (p *DefaultPayload) SetTopic(topic string) {
@@ -144,8 +144,8 @@ func (p *DefaultPayload) Copy() Payload {
 		Encoding:   p.Encoding,
 		Sig:        p.Sig,
 		Time:       p.Time,
-		Topic:	    p.Topic,
-		from_id:    p.From(),
+		Topic:      p.Topic,
+		FromID:     p.From(),
 	}
 
 	return np
