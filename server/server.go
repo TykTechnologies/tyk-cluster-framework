@@ -24,6 +24,7 @@ type Server interface {
 	Stop() error
 	Connections() []string
 	Publish(string, payloads.Payload) error
+	Relay(string, payloads.Payload) error
 	GetID() string
 	SetOnPublish(PublishHook) error
 }

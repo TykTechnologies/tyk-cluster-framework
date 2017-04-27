@@ -150,6 +150,10 @@ func (s *MangosServer) receiveAndRelay(sock *socketMap) {
 		}
 		log.Debug("[SERVER] Relayed: ", string(msg))
 
+		if s.onPublishHook != nil {
+			s.onPublishHook([]byte{}, msg)
+		}
+
 	}
 }
 
@@ -350,8 +354,16 @@ func (s *MangosServer) Stop() error {
 	return errors.New("Already stopped")
 }
 
-// Publish will send a Payload from the server to connected clients on the specified topic
 func (s *MangosServer) Publish(filter string, payload payloads.Payload) error {
+	return s.doPublish(filter, payload, true)
+}
+
+func (s *MangosServer) Relay(filter string, payload payloads.Payload) error {
+	return s.doPublish(filter, payload, false)
+}
+
+// Publish will send a Payload from the server to connected clients on the specified topic
+func (s *MangosServer) doPublish(filter string, payload payloads.Payload, withHook bool) error {
 	if payload == nil {
 		return nil
 	}
@@ -392,8 +404,10 @@ func (s *MangosServer) Publish(filter string, payload payloads.Payload) error {
 		return fmt.Errorf("Failed publishing: %s", pubErr.Error())
 	}
 
-	if s.onPublishHook != nil {
-		s.onPublishHook([]byte(filter), asPayload)
+	if withHook {
+		if s.onPublishHook != nil {
+			s.onPublishHook([]byte(filter), asPayload)
+		}
 	}
 
 	return nil
