@@ -59,6 +59,7 @@ type BeaconClient struct {
 	listening       bool
 	Encoding        encoding.Encoding
 	payloadHandlers payloadMap
+	id string
 }
 
 // The default Beacon payload format, because we need to handle channel subscriptions manually.
@@ -77,6 +78,10 @@ func (b *BeaconClient) Stop() error {
 func (b *BeaconClient) Connect() error {
 	// No op, UDP is passive
 	return nil
+}
+
+func (b *BeaconClient)  GetID() string {
+	return b.id
 }
 
 // Publish is not implemented because the underlying beacon

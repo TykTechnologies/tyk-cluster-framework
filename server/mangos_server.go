@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/satori/go.uuid"
 )
 
 type socketMap struct {
@@ -33,6 +34,8 @@ type MangosServer struct {
 	inboundMessageClients map[string]*socketMap
 	conf                  *MangosServerConf
 	encoding              encoding.Encoding
+	id                    string
+	onPublishHook 	      func([]byte) error
 }
 
 // MangosServerConf provides the configuration details for a MangosServer
@@ -55,8 +58,13 @@ func (s *MangosServer) Init(config interface{}) error {
 	s.conf = config.(*MangosServerConf)
 	s.inboundMessageClients = make(map[string]*socketMap)
 	s.SetEncoding(s.conf.Encoding)
+	s.id = uuid.NewV4().String()
 
 	return nil
+}
+
+func (s *MangosServer)  GetID() string {
+	return s.id
 }
 
 // Connections returns a list of connected clients, used mainly in testing
@@ -348,6 +356,9 @@ func (s *MangosServer) Publish(filter string, payload payloads.Payload) error {
 		return nil
 	}
 
+	payload.SetTopic(filter)
+	payload.SetFrom(s.GetID())
+
 	data, encErr := payloads.Marshal(payload, s.encoding)
 	if encErr != nil {
 		return encErr
@@ -378,5 +389,14 @@ func (s *MangosServer) Publish(filter string, payload payloads.Payload) error {
 		return fmt.Errorf("Failed publishing: %s", pubErr.Error())
 	}
 
+	if s.onPublishHook != nil {
+		s.onPublishHook(asPayload)
+	}
+
+	return nil
+}
+
+func (s *MangosServer) SetOnPublish(onPublishHook func([]byte) error) error {
+	s.onPublishHook = onPublishHook
 	return nil
 }

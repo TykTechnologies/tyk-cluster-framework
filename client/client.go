@@ -3,6 +3,7 @@ package client
 import (
 	"errors"
 	"github.com/TykTechnologies/logrus"
+	"github.com/satori/go.uuid"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"net/url"
@@ -21,6 +22,7 @@ type Client interface {
 	Init(interface{}) error
 	Stop() error
 	SetConnectionDropHook(func() error) error
+	GetID() string
 }
 
 // NewClient will create a new client object based on the enum provided, the object will be pre-configured
@@ -36,6 +38,8 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 	}
 
 	transport := parts[0]
+	id := uuid.NewV4().String()
+
 	switch transport {
 	case "redis":
 		log.WithFields(logrus.Fields{
@@ -43,6 +47,7 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 		}).Info("Using Redis back-end")
 		c := &RedisClient{
 			URL: connectionString,
+			id: id,
 		}
 		c.SetEncoding(baselineEncoding)
 		c.Init(nil)
@@ -87,6 +92,7 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 		c := &BeaconClient{
 			Port:     portAsInt,
 			Interval: asInt,
+			id: id,
 		}
 		c.SetEncoding(baselineEncoding)
 		c.Init(nil)
@@ -116,6 +122,7 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 		c := &MangosClient{
 			URL:              url,
 			disablePublisher: disablePublisher != "",
+			id: id,
 		}
 
 		c.SetEncoding(baselineEncoding)

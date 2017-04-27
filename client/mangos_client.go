@@ -58,6 +58,7 @@ type MangosClient struct {
 	broadcastKillChans map[string]chan struct{}
 	SubscribeChan      chan string
 	onDisconnect       func() error
+	id string
 }
 
 // Init will initialise a MangosClient
@@ -70,6 +71,10 @@ func (m *MangosClient) Init(config interface{}) error {
 	}
 
 	return nil
+}
+
+func (m *MangosClient)  GetID() string {
+	return m.id
 }
 
 // Connect will connect a MangosClient to a MangosServer
@@ -96,6 +101,9 @@ func (m *MangosClient) Publish(filter string, payload payloads.Payload) error {
 	if payload == nil {
 		return nil
 	}
+
+	payload.SetTopic(filter)
+	payload.SetFrom(m.GetID())
 
 	data, encErr := payloads.Marshal(payload, m.Encoding)
 	if encErr != nil {

@@ -22,6 +22,8 @@ type Server interface {
 	Stop() error
 	Connections() []string
 	Publish(string, payloads.Payload) error
+	GetID() string
+	SetOnPublish(func([]byte) error) error
 }
 
 // NewServer will generate a new server object based on the enum provided.

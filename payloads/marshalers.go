@@ -2,8 +2,8 @@ package payloads
 
 import (
 	"encoding/json"
-	"errors"
 	tykEnc "github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"fmt"
 )
 
 // Marshal will call the correct marshallers for the payload, because payloads are double-encoded
@@ -13,8 +13,10 @@ func Marshal(from Payload, enc tykEnc.Encoding) (interface{}, error) {
 	switch enc {
 	case tykEnc.JSON:
 		return marshalJSON(from)
+	case tykEnc.NONE:
+		return marshalNone(from)
 	default:
-		return nil, errors.New("encoding.Encoding is not supported!")
+		return nil, fmt.Errorf("Encoding: %v is not supported", enc)
 	}
 }
 
@@ -24,4 +26,8 @@ func marshalJSON(from Payload) (interface{}, error) {
 	// First encode the inner data payload
 	newPayload.Encode()
 	return json.Marshal(newPayload)
+}
+
+func marshalNone(from Payload) (interface{}, error) {
+	return from, nil
 }
