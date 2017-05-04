@@ -107,7 +107,7 @@ func (b *BeaconClient) handleBeaconMessage(s *beacon.Signal) {
 	if decErr != nil {
 		log.WithFields(logrus.Fields{
 			"prefix": "tcf.beaconclient",
-		}).Errorf("Beacon decode error! %v\n", decErr)
+		}).Errorf("Beacon decode error! %v (%v)", decErr, string(s.Transmit))
 		return
 	}
 
