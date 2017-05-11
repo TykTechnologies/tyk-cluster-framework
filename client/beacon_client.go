@@ -59,6 +59,7 @@ type BeaconClient struct {
 	listening       bool
 	Encoding        encoding.Encoding
 	payloadHandlers payloadMap
+	id string
 }
 
 // The default Beacon payload format, because we need to handle channel subscriptions manually.
@@ -77,6 +78,10 @@ func (b *BeaconClient) Stop() error {
 func (b *BeaconClient) Connect() error {
 	// No op, UDP is passive
 	return nil
+}
+
+func (b *BeaconClient)  GetID() string {
+	return b.id
 }
 
 // Publish is not implemented because the underlying beacon
@@ -102,7 +107,7 @@ func (b *BeaconClient) handleBeaconMessage(s *beacon.Signal) {
 	if decErr != nil {
 		log.WithFields(logrus.Fields{
 			"prefix": "tcf.beaconclient",
-		}).Errorf("Beacon decode error! %v\n", decErr)
+		}).Errorf("Beacon decode error! %v (%v)", decErr, string(s.Transmit))
 		return
 	}
 
@@ -251,5 +256,10 @@ func (b *BeaconClient) Broadcast(filter string, payload payloads.Payload, interv
 func (b *BeaconClient) StopBroadcast(f string) error {
 	b.beacon.Silence()
 	b.publishing = false
+	return nil
+}
+
+func (c *BeaconClient) SetConnectionDropHook(callback func() error) error {
+	// no-op
 	return nil
 }

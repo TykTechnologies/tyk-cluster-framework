@@ -14,8 +14,12 @@ type Payload interface {
 	Encode() error
 	DecodeMessage(interface{}) error
 	SetEncoding(tykenc.Encoding)
+	SetTopic(string)
+	GetTopic() string
 	Copy() Payload
 	TimeStamp() time.Time
+	From() string
+	SetFrom(string)
 }
 
 // DefaultPayload is the default payload that is used by TCF
@@ -25,11 +29,29 @@ type DefaultPayload struct {
 	Encoding   tykenc.Encoding
 	Sig        string
 	Time       int64
+	Topic      string
+	FromID     string
 }
 
 // TimeStamp will set the TS of the payload
 func (p *DefaultPayload) TimeStamp() time.Time {
 	return time.Unix(p.Time, 0)
+}
+
+func (p *DefaultPayload) From() string {
+	return p.FromID
+}
+
+func (p *DefaultPayload) SetFrom(id string) {
+	p.FromID = id
+}
+
+func (p *DefaultPayload) SetTopic(topic string) {
+	p.Topic = topic
+}
+
+func (p *DefaultPayload) GetTopic() string {
+	return p.Topic
 }
 
 // Verify will check the signature if enabled
@@ -63,6 +85,9 @@ func (p *DefaultPayload) Encode() error {
 		// Sign
 		p.Sig, err = defaultPayloadConfig.verifier.Sign(j)
 		return err
+
+	case tykenc.NONE:
+		return nil
 
 	default:
 		return errors.New("encoding.Encoding is not supported!")
@@ -98,6 +123,8 @@ func (p *DefaultPayload) DecodeMessage(into interface{}) error {
 			return err
 		}
 		return nil
+	case tykenc.NONE:
+		return nil
 	default:
 		return errors.New("encoding.Encoding is not supported!")
 	}
@@ -117,6 +144,8 @@ func (p *DefaultPayload) Copy() Payload {
 		Encoding:   p.Encoding,
 		Sig:        p.Sig,
 		Time:       p.Time,
+		Topic:      p.Topic,
+		FromID:     p.From(),
 	}
 
 	return np

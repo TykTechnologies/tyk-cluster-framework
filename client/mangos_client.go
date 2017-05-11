@@ -52,10 +52,13 @@ type MangosClient struct {
 	URL string
 
 	pubSock            mangos.Socket
+	disablePublisher   bool
 	Encoding           encoding.Encoding
 	payloadHandlers    socketMap
 	broadcastKillChans map[string]chan struct{}
 	SubscribeChan      chan string
+	onDisconnect       func() error
+	id string
 }
 
 // Init will initialise a MangosClient
@@ -68,6 +71,10 @@ func (m *MangosClient) Init(config interface{}) error {
 	}
 
 	return nil
+}
+
+func (m *MangosClient)  GetID() string {
+	return m.id
 }
 
 // Connect will connect a MangosClient to a MangosServer
@@ -93,6 +100,12 @@ func (m *MangosClient) Stop() error {
 func (m *MangosClient) Publish(filter string, payload payloads.Payload) error {
 	if payload == nil {
 		return nil
+	}
+
+	payload.SetTopic(filter)
+
+	if payload.From() == "" {
+		payload.SetFrom(m.GetID())
 	}
 
 	data, encErr := payloads.Marshal(payload, m.Encoding)
@@ -275,6 +288,10 @@ func (m *MangosClient) StopBroadcast(f string) error {
 }
 
 func (m *MangosClient) startMessagePublisher() error {
+	if m.disablePublisher {
+		return nil
+	}
+
 	var err error
 	if m.pubSock, err = pub.NewSocket(); err != nil {
 		log.Errorf("can't get new pub socket: %s", err)
@@ -313,10 +330,25 @@ func (m *MangosClient) startMessagePublisher() error {
 }
 
 func (m *MangosClient) onPortAction(action mangos.PortAction, data mangos.Port) bool {
-	fmt.Println(data.Address())
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.MangosClient",
-	}).Info("New publish connection from: ", data.Address())
+	}).Info("New publish connection change detected")
+
+	if action == mangos.PortActionRemove {
+		if m.onDisconnect != nil {
+			if err := m.onDisconnect(); err != nil {
+				log.WithFields(logrus.Fields{
+					"prefix": "tcf.MangosClient",
+				}).Error("Disconnect callback returned error: ", err)
+			}
+		}
+
+	}
 
 	return true
+}
+
+func (m *MangosClient) SetConnectionDropHook(callback func() error) error {
+	m.onDisconnect = callback
+	return nil
 }

@@ -3,6 +3,7 @@ package client
 import (
 	"errors"
 	"github.com/TykTechnologies/logrus"
+	"github.com/satori/go.uuid"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"net/url"
@@ -20,10 +21,16 @@ type Client interface {
 	SetEncoding(encoding.Encoding) error
 	Init(interface{}) error
 	Stop() error
+	SetConnectionDropHook(func() error) error
+	GetID() string
 }
 
 // NewClient will create a new client object based on the enum provided, the object will be pre-configured
-// with the defaults needed and any custom configurations passed in for the type
+// with the defaults needed and any custom configurations passed in for the type.
+// For `beacon`, it is possible to set an `?interval=time_in_ms` option to set the broadcast interval.
+// For `mangos`, it is possible to set an `?disable_publisher` boolean that stops the client from creating
+// a publishing channel, this is useful for servers that run their own clients to subscribe to themselves.
+// Should be used in conjunction with the `disable_loopback` option in the server.
 func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Client, error) {
 	parts := strings.Split(connectionString, "://")
 	if len(parts) < 2 {
@@ -31,6 +38,8 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 	}
 
 	transport := parts[0]
+	id := uuid.NewV4().String()
+
 	switch transport {
 	case "redis":
 		log.WithFields(logrus.Fields{
@@ -38,6 +47,7 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 		}).Info("Using Redis back-end")
 		c := &RedisClient{
 			URL: connectionString,
+			id: id,
 		}
 		c.SetEncoding(baselineEncoding)
 		c.Init(nil)
@@ -82,6 +92,7 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 		c := &BeaconClient{
 			Port:     portAsInt,
 			Interval: asInt,
+			id: id,
 		}
 		c.SetEncoding(baselineEncoding)
 		c.Init(nil)
@@ -106,8 +117,12 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 			"prefix": "tcf",
 		}).Info("Connecting to: ", url)
 
+		disablePublisher := URL.Query().Get("disable_publisher")
+
 		c := &MangosClient{
-			URL: url,
+			URL:              url,
+			disablePublisher: disablePublisher != "",
+			id: id,
 		}
 
 		c.SetEncoding(baselineEncoding)
