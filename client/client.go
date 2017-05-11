@@ -2,13 +2,13 @@ package client
 
 import (
 	"errors"
-	"github.com/TykTechnologies/logrus"
-	"github.com/satori/go.uuid"
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
-	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/TykTechnologies/logrus"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 )
 
 // Client is a queue client managed by TCF
@@ -132,6 +132,6 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 
 		return c, nil
 	default:
-		return nil, errors.New("No valid transport set.")
+		return nil, errors.New("No valid transport set")
 	}
 }

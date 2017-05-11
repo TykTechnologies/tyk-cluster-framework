@@ -2,13 +2,14 @@ package client
 
 import (
 	"errors"
+	"net/url"
+	"strings"
+	"time"
+
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/garyburd/redigo/redis"
-	"net/url"
-	"strings"
-	"time"
 )
 
 // RedisClient provides an abstraction over redis' pub/sub mechanism, it only works with
@@ -43,7 +44,7 @@ func (c *RedisClient)  GetID() string {
 // Connect will set up the redis connection
 func (c *RedisClient) Connect() error {
 	if c.URL == "" {
-		return errors.New("Redis URL not set!!")
+		return errors.New("Redis URL not set")
 	}
 
 	var err error
@@ -72,10 +73,8 @@ func (c *RedisClient) Publish(filter string, p payloads.Payload) error {
 	switch data.(type) {
 	case []byte:
 		toSend = string(data.([]byte))
-		break
 	case string:
 		toSend = data.(string)
-		break
 	default:
 		return errors.New("Encoded data is not supported")
 	}
@@ -228,8 +227,7 @@ func (c *RedisClient) Broadcast(filter string, payload payloads.Payload, interva
 
 	killChan := make(chan struct{})
 	go func(f string, p payloads.Payload, i int, k chan struct{}) {
-		var ticker <-chan time.Time
-		ticker = time.After(time.Duration(i) * time.Second)
+		ticker := time.After(time.Duration(i) * time.Second)
 
 		for {
 			select {
