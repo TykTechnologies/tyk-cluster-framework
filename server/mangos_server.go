@@ -11,12 +11,12 @@ import (
 	"github.com/go-mangos/mangos/protocol/pub"
 	"github.com/go-mangos/mangos/protocol/sub"
 	"github.com/go-mangos/mangos/transport/tcp"
+  "github.com/satori/go.uuid"
 	"net"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/satori/go.uuid"
 )
 
 type socketMap struct {
