@@ -291,8 +291,6 @@ func TestMangosClient(t *testing.T) {
 		}
 
 		c1.Stop()
-		close(resultChan3)
-		close(resultChan4)
 	})
 
 	t.Run("Broadcast Test", func(t *testing.T) {

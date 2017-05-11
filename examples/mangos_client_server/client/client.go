@@ -20,7 +20,7 @@ var tcfClient client.Client
 
 func main() {
 	var err error
-	if tcfClient, err = client.NewClient("mangos://127.0.0.1:9001", encoding.JSON); err != nil {
+	if tcfClient, err = client.NewClient("mangos://tcf-test2:9001", encoding.JSON); err != nil {
 		log.Fatal(err)
 	}
 

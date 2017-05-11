@@ -26,6 +26,10 @@ import (
 var log = logger.GetLogger()
 var logPrefix string = "tcf.rafty"
 
+type MasterConfigPayload struct {
+	HttpServerAddr string
+}
+
 // StartServer will start a rafty server based on it's configuration. Most of this is handled by the distributed store parent library.
 func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signal, broadcastWith client.Client, serviceChan chan *httpd.EmbeddedService) {
 	log.Info("Log level: ", os.Getenv("TYK_LOGLEVEL"))
@@ -50,12 +54,12 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 	s.RaftDir = raftyConfig.RaftDir
 	s.RaftBind = raftyConfig.RaftServerAddress
 
-	var masterConfigChan = make(chan Config)
+	var masterConfigChan = make(chan MasterConfigPayload)
 	if broadcastWith != nil {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
 		}).Info("Starting master boradcaster")
-		go startBroadcast(broadcastWith, s, raftyConfig)
+		go startBroadcast(broadcastWith, s, &MasterConfigPayload{HttpServerAddr:raftyConfig.HttpServerAddr})
 		startListeningForMasterChange(broadcastWith, masterConfigChan)
 
 		if raftyConfig.RunInSingleServerMode == false {
@@ -143,7 +147,7 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 	s.RemovePeer(raftyConfig.RaftServerAddress)
 }
 
-func masterListener(inBoundChan chan Config, raftyConfig *Config) {
+func masterListener(inBoundChan chan MasterConfigPayload, raftyConfig *Config) {
 	lastWrite := time.Now().Unix()
 	for {
 		masterConfig := <-inBoundChan
@@ -162,12 +166,12 @@ func masterListener(inBoundChan chan Config, raftyConfig *Config) {
 
 }
 
-func startBroadcast(msgClient client.Client, s *store.Store, raftyConfig *Config) {
+func startBroadcast(msgClient client.Client, s *store.Store, raftyConfig *MasterConfigPayload) {
 	var isPublishing bool
 	for {
 		if !isPublishing {
 			if s.IsLeader() {
-				thisPayload, pErr := payloads.NewPayload(raftyConfig)
+				thisPayload, pErr := payloads.NewPayload(*raftyConfig)
 
 				if pErr != nil {
 					log.WithFields(logrus.Fields{
@@ -193,9 +197,9 @@ func startBroadcast(msgClient client.Client, s *store.Store, raftyConfig *Config
 	}
 }
 
-func startListeningForMasterChange(msgClient client.Client, configChan chan Config) {
+func startListeningForMasterChange(msgClient client.Client, configChan chan MasterConfigPayload) {
 	msgClient.Subscribe("tcf.cluster.distributed_store.leader", func(payload payloads.Payload) {
-		var d Config
+		var d MasterConfigPayload
 		decErr := payload.DecodeMessage(&d)
 		var skip bool
 		if decErr != nil {

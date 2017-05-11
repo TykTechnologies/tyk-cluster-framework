@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/pub"
 	"github.com/go-mangos/mangos/protocol/sub"
 	"github.com/go-mangos/mangos/transport/tcp"
+	"net"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
-	"github.com/TykTechnologies/tyk-cluster-framework/helpers"
-	"net"
+	"github.com/satori/go.uuid"
 )
 
 type socketMap struct {
@@ -32,16 +34,23 @@ type MangosServer struct {
 	inboundMessageClients map[string]*socketMap
 	conf                  *MangosServerConf
 	encoding              encoding.Encoding
+	id                    string
+	onPublishHook 	      PublishHook
 }
 
 // MangosServerConf provides the configuration details for a MangosServer
 type MangosServerConf struct {
-	Encoding encoding.Encoding
-	listenOn string
+	Encoding                   encoding.Encoding
+	listenOn                   string
+	disableConnectionsFromSelf bool
 }
 
-func newMangoConfig(listenOn string) *MangosServerConf {
-	return &MangosServerConf{listenOn: listenOn, Encoding: encoding.JSON}
+func newMangoConfig(listenOn string, disableConnectionsFromSelf bool) *MangosServerConf {
+	return &MangosServerConf{
+		listenOn:                   listenOn,
+		disableConnectionsFromSelf: disableConnectionsFromSelf,
+		Encoding:                   encoding.JSON,
+	}
 }
 
 // init will set up the initial state of the server
@@ -49,8 +58,13 @@ func (s *MangosServer) Init(config interface{}) error {
 	s.conf = config.(*MangosServerConf)
 	s.inboundMessageClients = make(map[string]*socketMap)
 	s.SetEncoding(s.conf.Encoding)
+	s.id = uuid.NewV4().String()
 
 	return nil
+}
+
+func (s *MangosServer)  GetID() string {
+	return s.id
 }
 
 // Connections returns a list of connected clients, used mainly in testing
@@ -136,6 +150,10 @@ func (s *MangosServer) receiveAndRelay(sock *socketMap) {
 		}
 		log.Debug("[SERVER] Relayed: ", string(msg))
 
+		if s.onPublishHook != nil {
+			s.onPublishHook([]byte{}, msg)
+		}
+
 	}
 }
 
@@ -167,13 +185,47 @@ func (s *MangosServer) listenForMessagesToRelayForAddress(address string, killCh
 	return nil
 }
 
+var ConnectToSelf error = errors.New("Connect to self. Void.")
+
 func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket, error) {
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.MangosServer",
 	}).Info("New inbound connection from: ", address)
 
-	var cSock mangos.Socket
 	var err error
+
+	if s.conf.disableConnectionsFromSelf {
+		ifaces, err := net.Interfaces()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, i := range ifaces {
+			addrs, err := i.Addrs()
+			if err != nil {
+				return nil, err
+			}
+
+			for _, addr := range addrs {
+				var ip net.IP
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ip = v.IP
+				case *net.IPAddr:
+					ip = v.IP
+				}
+
+				if strings.Contains(address, ip.String()) {
+					log.WithFields(logrus.Fields{
+						"prefix": "tcf.MangosServer",
+					}).Info("Connection is from self! skipping.")
+					return nil, ConnectToSelf
+				}
+			}
+		}
+	}
+
+	var cSock mangos.Socket
 	if cSock, err = sub.NewSocket(); err != nil {
 		return nil, fmt.Errorf("can't get new socket: %s", err.Error())
 	}
@@ -194,7 +246,7 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 		return nil, err
 	}
 
-	p := pAsInt+1
+	p := pAsInt + 1
 
 	// The return address must always be inbound port+1 in order to find the correct publisher
 	returnAddress := fmt.Sprintf("%v://%v:%v", u.URL.Scheme, u.Hostname(), strconv.Itoa(p))
@@ -215,11 +267,6 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 }
 
 func (s *MangosServer) handleNewConnection(data mangos.Port) error {
-	_, f := s.inboundMessageClients[data.Address()]
-	if f {
-		return nil
-	}
-
 	killChan := make(chan struct{})
 	tcpAddr, err := data.GetProp("REMOTE-ADDR")
 	if err != nil {
@@ -228,9 +275,19 @@ func (s *MangosServer) handleNewConnection(data mangos.Port) error {
 	}
 
 	addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).String())
+	_, f := s.inboundMessageClients[addr]
+	if f {
+		return nil
+	}
+
 	cSock, err := s.connectToClientForMessages(addr)
 	if err != nil {
-		return err
+		// TODO: This should be a special case!
+		if err != ConnectToSelf {
+			return err
+		}
+
+		return nil
 	}
 	s.inboundMessageClients[data.Address()] = &socketMap{KillChan: killChan, Sock: cSock}
 	go s.listenForMessagesToRelayForAddress(data.Address(), killChan)
@@ -239,7 +296,15 @@ func (s *MangosServer) handleNewConnection(data mangos.Port) error {
 }
 
 func (s *MangosServer) handleRemoveConnection(data mangos.Port) error {
-	cSock, f := s.inboundMessageClients[data.Address()]
+	tcpAddr, err := data.GetProp("REMOTE-ADDR")
+	if err != nil {
+		log.Error("Cannot get remote address: ", err)
+		return err
+	}
+
+	addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).String())
+	cSock, f := s.inboundMessageClients[addr]
+
 	if !f {
 		return nil
 	}
@@ -289,10 +354,24 @@ func (s *MangosServer) Stop() error {
 	return errors.New("Already stopped")
 }
 
-// Publish will send a Payload from the server to connected clients on the specified topic
 func (s *MangosServer) Publish(filter string, payload payloads.Payload) error {
+	return s.doPublish(filter, payload, true)
+}
+
+func (s *MangosServer) Relay(filter string, payload payloads.Payload) error {
+	return s.doPublish(filter, payload, false)
+}
+
+// Publish will send a Payload from the server to connected clients on the specified topic
+func (s *MangosServer) doPublish(filter string, payload payloads.Payload, withHook bool) error {
 	if payload == nil {
 		return nil
+	}
+
+	payload.SetTopic(filter)
+
+	if payload.From() == "" {
+		payload.SetFrom(s.GetID())
 	}
 
 	data, encErr := payloads.Marshal(payload, s.encoding)
@@ -325,5 +404,16 @@ func (s *MangosServer) Publish(filter string, payload payloads.Payload) error {
 		return fmt.Errorf("Failed publishing: %s", pubErr.Error())
 	}
 
+	if withHook {
+		if s.onPublishHook != nil {
+			s.onPublishHook([]byte(filter), asPayload)
+		}
+	}
+
+	return nil
+}
+
+func (s *MangosServer) SetOnPublish(onPublishHook PublishHook) error {
+	s.onPublishHook = onPublishHook
 	return nil
 }

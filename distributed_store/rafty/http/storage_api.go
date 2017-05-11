@@ -236,15 +236,17 @@ func (s *StorageAPI) processTTLElement() {
 			skip = true
 		}
 
-		if existingKey.Node.Expiration.Unix() != thisElem.(ttlIndexElement).TTL {
-			// Expiration has changed, so it must be in the queue again
-			log.WithFields(logrus.Fields{
-				"prefix": "tcf.rafty.storage-api",
-			}).Debug("Skipping eviction for key, TTL has changed")
-			skip = true
+		if !skip {
+			if existingKey.Node.Expiration.Unix() != thisElem.(ttlIndexElement).TTL {
+				// Expiration has changed, so it must be in the queue again
+				log.WithFields(logrus.Fields{
+					"prefix": "tcf.rafty.storage-api",
+				}).Debug("Skipping eviction for key, TTL has changed")
+				skip = true
+			}
 		}
 
-		if skip == false {
+		if !skip {
 			// Check expiry
 			tn := time.Now().Unix()
 			log.WithFields(logrus.Fields{
