@@ -149,6 +149,65 @@ func (s *StorageAPI) SetKey(k string, value *rafty_objects.NodeValue, overwrite 
 	return value, nil
 }
 
+func (s *StorageAPI) AddToSet(k string, value []byte) ([]byte, *ErrorResponse) {
+	// Write data to the store
+	if err := s.store.AddToSet(k, value); err != nil {
+		return nil, NewErrorResponse("/"+k, "Could not add to set: "+err.Error())
+	}
+
+	return value, nil
+}
+
+func (s *StorageAPI) GetSet(k string) (map[interface{}]interface{}, *ErrorResponse) {
+	// Write data to the store
+	var value map[interface{}]interface{}
+	var err error
+
+	if value, err = s.store.GetSet(k); err != nil {
+		return nil, NewErrorResponse("/"+k, "Could not get set: "+err.Error())
+	}
+
+	return value, nil
+}
+
+func (s *StorageAPI) LPush(key string, values... interface{}) *ErrorResponse {
+	if err := s.store.LPush(key, values...); err != nil {
+		return NewErrorResponse("/"+key, "Could not get set: "+err.Error())
+	}
+
+	return nil
+}
+
+func (s *StorageAPI) LLen(key string) (int64, *ErrorResponse) {
+	var value int64
+	var err error
+
+	if value, err = s.store.LLen(key); err != nil {
+		return value, NewErrorResponse("/"+key, "Could not get set: "+err.Error())
+	}
+
+	return value, nil
+}
+
+func (s *StorageAPI) LRem(key string, count int, value interface{}) *ErrorResponse {
+	if err := s.store.LRem(key, count, value); err != nil {
+		return NewErrorResponse("/"+key, "Could not get set: "+err.Error())
+	}
+
+	return nil
+}
+
+func (s *StorageAPI) LRange(key string, from, to int) ([]interface{}, *ErrorResponse) {
+	var value []interface{}
+	var err error
+
+	if value, err = s.store.LRange(key, from, to); err != nil {
+		return value, NewErrorResponse("/"+key, "Could not get set: "+err.Error())
+	}
+
+	return value, nil
+}
+
 func (s *StorageAPI) DeleteKey(k string) (*KeyValueAPIObject, *ErrorResponse) {
 	if err := s.store.Delete(k); err != nil {
 		return nil, NewErrorResponse("/"+k, "Delete failed: "+err.Error())

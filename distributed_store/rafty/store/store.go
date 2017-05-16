@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -25,6 +24,7 @@ import (
 	"gopkg.in/vmihailenco/msgpack.v2"
 	"strconv"
 	"strings"
+	"errors"
 )
 
 var log = logger.GetLogger()
@@ -37,6 +37,7 @@ const (
 type command struct {
 	Op    string `json:"op,omitempty"`
 	Key   string `json:"key,omitempty"`
+	Count int    `json:"count,omitempty"`
 	Value []byte `json:"value,omitempty"`
 }
 
@@ -152,6 +153,161 @@ func (s *Store) Set(key string, value []byte) error {
 	return f.Error()
 }
 
+func (s *Store) AddToSet(key string, value []byte) error {
+	if s.raft.State() != raft.Leader {
+		return fmt.Errorf("not leader")
+	}
+
+	// Wrap and apply
+	c := &command{
+		Op:    "addToSet",
+		Key:   key,
+		Value: value,
+	}
+
+	b, err := msgpack.Marshal(c)
+	if err != nil {
+		return err
+	}
+
+	m := s.raft.Apply(b, raftTimeout)
+	return m.Error()
+}
+
+func (s *Store) GetSet(key string) (map[interface{}]interface{}, error) {
+	// Get the set
+	s.mu.Lock()
+	v, f := s.m[key]
+	s.mu.Unlock()
+
+	// Decode it from []byte
+	var set map[interface{}]interface{}
+	if !f {
+		return nil, nil
+	}
+
+	if err := msgpack.Unmarshal(v, &set); err != nil {
+		return nil, err
+	}
+
+	return set, nil
+}
+
+func (s *Store) LPush(key string, values... interface{}) error {
+	// Encode
+	encoded, err := msgpack.Marshal(values)
+	if err != nil {
+		return err
+	}
+
+	// Wrap and apply
+	c := &command{
+		Op:    "lpush",
+		Key:   key,
+		Value: encoded,
+	}
+
+	b, err := msgpack.Marshal(c)
+	if err != nil {
+		return err
+	}
+
+	m := s.raft.Apply(b, raftTimeout)
+	return m.Error()
+}
+
+func (s *Store) LLen(key string) (int64, error) {
+	// Get the list
+	s.mu.Lock()
+	v, f := s.m[key]
+	s.mu.Unlock()
+
+	var l []interface{}
+	if !f {
+		return 0, nil
+	} else {
+		if err := msgpack.Unmarshal(v, &l); err != nil {
+			return 0, err
+		}
+	}
+
+	return int64(len(l)), nil
+}
+
+func (s *Store) LRem(key string, count int, value interface{}) error {
+	// Encode
+	encoded, err := msgpack.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	// Wrap and apply
+	com := &command{
+		Op:    "lrem",
+		Count: count,
+		Key:   key,
+		Value: encoded,
+	}
+
+	b, err := msgpack.Marshal(com)
+	if err != nil {
+		return err
+	}
+
+	m := s.raft.Apply(b, raftTimeout)
+	return m.Error()
+}
+
+func (s *Store) LRange(key string, from, to int) ([]interface{}, error) {
+
+	// Get the list
+	s.mu.Lock()
+	v, f := s.m[key]
+	s.mu.Unlock()
+
+	var list []interface{}
+	if !f {
+		return []interface{}{}, nil
+	} else {
+		if err := msgpack.Unmarshal(v, &list); err != nil {
+			return []interface{}{}, err
+		}
+	}
+
+	if from < 0 {
+		from = len(list) + from
+
+		// Can't be smaller than 0!
+		if from < 0 {
+			from = 0
+		}
+	}
+
+	// Can't be bigger than the list, return 0
+	if from > len(list) {
+		return []interface{}{}, errors.New("Start index larger than length of list")
+	}
+
+	if to < 0 {
+		to = len(list) + to
+	}
+
+	// Rightmost index
+	if to >= 0 {
+		to += 1
+	}
+
+	if to > len(list) {
+		to = len(list)
+	}
+
+	if from > to {
+		return []interface{}{}, errors.New("Start index is after end")
+	}
+
+	return list[from:to], nil
+}
+
 // Delete deletes the given key.
 func (s *Store) Delete(key string) error {
 	if s.raft.State() != raft.Leader {
@@ -220,65 +376,6 @@ func (s *Store) IsLeader() bool {
 		return true
 	}
 	return false
-}
-
-type fsm Store
-
-// Apply applies a Raft log entry to the key-value store.
-func (f *fsm) Apply(l *raft.Log) interface{} {
-	var c command
-	if err := msgpack.Unmarshal(l.Data, &c); err != nil {
-		log.Fatalf(fmt.Sprintf("failed to unmarshal command: %s", err.Error()))
-	}
-
-	switch c.Op {
-	case "set":
-		return f.applySet(c.Key, c.Value)
-	case "delete":
-		return f.applyDelete(c.Key)
-	default:
-		panic(fmt.Sprintf("unrecognized command op: %s", c.Op))
-	}
-}
-
-// Snapshot returns a snapshot of the key-value store.
-func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	// Clone the map.
-	o := make(map[string][]byte)
-	for k, v := range f.m {
-		o[k] = v
-	}
-	return &fsmSnapshot{store: o}, nil
-}
-
-// Restore stores the key-value store to a previous state.
-func (f *fsm) Restore(rc io.ReadCloser) error {
-	o := make(map[string][]byte)
-	if err := msgpack.NewDecoder(rc).Decode(&o); err != nil {
-		return err
-	}
-
-	// Set the state from the snapshot, no lock required according to
-	// Hashicorp docs.
-	f.m = o
-	return nil
-}
-
-func (f *fsm) applySet(key string, value []byte) interface{} {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.m[key] = value
-	return nil
-}
-
-func (f *fsm) applyDelete(key string) interface{} {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	delete(f.m, key)
-	return nil
 }
 
 type fsmSnapshot struct {

@@ -203,6 +203,107 @@ func TestDistributedStore(t *testing.T) {
 
 	})
 
+	t.Run("Test Set Ops", func(t *testing.T) {
+		k := "sets-test-1"
+
+		// Sets
+		_, err := ds1.StorageAPI.AddToSet(k, []byte("foo"))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = ds1.StorageAPI.AddToSet(k, []byte("bar"))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = ds1.StorageAPI.AddToSet(k, []byte("baz"))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// This should not be added
+		_, err = ds1.StorageAPI.AddToSet(k, []byte("foo"))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		ret, gErr := ds1.StorageAPI.GetSet(k)
+		if gErr != nil {
+			t.Fatal(err)
+		}
+
+		if len(ret.Meta.(map[interface{}]interface{})) != 3 {
+			t.Fatalf("Set should have 3 memeberts, has %v", len(ret.Meta.(map[interface{}]interface{})))
+		}
+	})
+
+	t.Run("Test List Ops", func(t *testing.T) {
+		k := "list-test-1"
+
+		// Lists
+		_, err := ds1.StorageAPI.LPush(k,"foo", "bar", "baz", "foo")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		lVal, lErr := ds1.StorageAPI.LLen(k)
+		if lErr != nil {
+			t.Fatal(lErr)
+		}
+
+		if lVal.Meta.(int64) != 4 {
+			t.Fatalf("Lists has wrong number of members, expected 4 got: %v", lVal.Meta.(int64))
+		}
+
+		_, err = ds1.StorageAPI.LRem(k, 2, "foo")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Get all
+		lRange, lrErr := ds1.StorageAPI.LRange(k, 0, -1)
+		if lrErr != nil {
+			t.Fatal(lrErr)
+		}
+
+		r := lRange.Meta.([]interface{})
+		if len(r) != 2 {
+			t.Fatalf("After LREM, wrong number of elements in list, expected 2, got: %v", len(r))
+		}
+
+		ds1.StorageAPI.LPush(k,"fee", "fie", "foe", "fum")
+		lRange, lrErr = ds1.StorageAPI.LRange(k, 0, -1)
+		if lrErr != nil {
+			t.Fatal(lrErr)
+		}
+
+		r = lRange.Meta.([]interface{})
+		if len(r) != 6 {
+			t.Fatalf("Wrong number of elements in range list, expected 6, got: %v", len(r))
+		}
+
+		lRange, lrErr = ds1.StorageAPI.LRange(k, 0, -3)
+		if lrErr != nil {
+			t.Fatal(lrErr)
+		}
+
+		r = lRange.Meta.([]interface{})
+		if len(r) != 4 {
+			t.Fatalf("Wrong number of elements in range list, expected 4, got: %v", len(r))
+		}
+
+		lRange, lrErr = ds1.StorageAPI.LRange(k, -3, -1)
+		if lrErr != nil {
+			t.Fatal(lrErr)
+		}
+
+		r = lRange.Meta.([]interface{})
+		if len(r) != 3 {
+			t.Fatalf("Wrong number of elements in range list, expected 3, got: %v", len(r))
+		}
+	})
+
 	// Tear-down
 	ds1.Stop()
 	ds2.Stop()

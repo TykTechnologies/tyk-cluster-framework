@@ -13,11 +13,18 @@ const (
 	ActionKeyModified  ActionType = "modified"
 	ActionKeyDeleted   ActionType = "deleted"
 	ActionKeyRequested ActionType = "requested"
+	ActionKeySetAdded ActionType = "set_add"
+	ActionKeySetRequested ActionType = "set_requested"
+	ActionKeyListPush ActionType = "list_push"
+	ActionKeyListRemove ActionType = "list_remove"
+	ActionKeyListLength ActionType = "list_length"
+	ActionKeyListRange ActionType = "list_range"
 )
 
 type KeyValueAPIObject struct {
 	Action ActionType               `json:"action"`
 	Node   *rafty_objects.NodeValue `json:"node"`
+	Meta 	interface{}		`json:"meta"`
 }
 
 // NewKeyValueAPIObject creates a new object for use in the APi

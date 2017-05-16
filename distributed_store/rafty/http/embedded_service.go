@@ -16,6 +16,7 @@ const (
 	forward_get    forwardingCommand = "get"
 	forward_update forwardingCommand = "update"
 	forward_delete forwardingCommand = "delete"
+	forward_add_to_set forwardingCommand = "add_to_set"
 )
 
 type EmbeddedService struct {
@@ -28,6 +29,121 @@ func NewEmbeddedService(useTLS bool, storageAPI *StorageAPI) *EmbeddedService {
 		storageAPI: storageAPI,
 		TLS:        useTLS,
 	}
+}
+
+func (e *EmbeddedService) AddToSet(key string, value []byte) (*KeyValueAPIObject, error) {
+	nodeData := &rafty_objects.NodeValue{
+		TTL:   0,
+		Value: string(value),
+		Key:   key,
+	}
+
+	if !e.storageAPI.store.IsLeader() {
+		return e.forwardCommand(key, forward_add_to_set, nodeData)
+	}
+
+	var err *ErrorResponse
+	if _, err = e.storageAPI.AddToSet(key, value); err != nil {
+		return nil, err
+	}
+
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeySetAdded)
+	returnData.Node = nodeData
+	return returnData, nil
+}
+
+func (e *EmbeddedService) GetSet(k string) (*KeyValueAPIObject, error) {
+	nodeData := &rafty_objects.NodeValue{
+		TTL:   0,
+		Value: "",
+		Key:   k,
+	}
+
+	var err *ErrorResponse
+	var value map[interface{}]interface{}
+	if value, err = e.storageAPI.GetSet(k); err != nil {
+		return nil, err
+	}
+
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeySetRequested)
+	returnData.Node = nodeData
+	returnData.Meta = value
+	return returnData, nil
+}
+
+func (e *EmbeddedService) LPush(key string, values... interface{}) (*KeyValueAPIObject, error) {
+	nodeData := &rafty_objects.NodeValue{
+		TTL:   0,
+		Value: "",
+		Key:   key,
+	}
+
+	var err *ErrorResponse
+	if err = e.storageAPI.LPush(key, values...); err != nil {
+		return nil, err
+	}
+
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeyListPush)
+	returnData.Node = nodeData
+	return returnData, nil
+}
+
+func (e *EmbeddedService) LLen(key string) (*KeyValueAPIObject, error) {
+	nodeData := &rafty_objects.NodeValue{
+		TTL:   0,
+		Value: "0",
+		Key:   key,
+	}
+
+	var err *ErrorResponse
+	var val int64
+	if val, err = e.storageAPI.LLen(key); err != nil {
+		return nil, err
+	}
+
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeyListLength)
+	returnData.Node = nodeData
+	returnData.Meta = val
+
+	return returnData, nil
+}
+
+func (e *EmbeddedService) LRem(key string, count int, value interface{}) (*KeyValueAPIObject, error) {
+	nodeData := &rafty_objects.NodeValue{
+		TTL:   0,
+		Value: "0",
+		Key:   key,
+	}
+
+	var err *ErrorResponse
+	if err = e.storageAPI.LRem(key, count, value); err != nil {
+		return nil, err
+	}
+
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeyListRemove)
+	returnData.Node = nodeData
+
+	return returnData, nil
+}
+
+func (e *EmbeddedService) LRange(key string, from, to int) (*KeyValueAPIObject, error) {
+	nodeData := &rafty_objects.NodeValue{
+		TTL:   0,
+		Value: "0",
+		Key:   key,
+	}
+
+	var err *ErrorResponse
+	var val []interface{}
+	if val, err = e.storageAPI.LRange(key, from, to); err != nil {
+		return nil, err
+	}
+
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeyListRange)
+	returnData.Node = nodeData
+	returnData.Meta = val
+
+	return returnData, nil
 }
 
 func (e *EmbeddedService) CreateKey(key string, value string, ttl int) (*KeyValueAPIObject, error) {

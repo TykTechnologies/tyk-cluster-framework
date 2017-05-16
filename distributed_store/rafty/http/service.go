@@ -40,6 +40,15 @@ type Store interface {
 	Leader() string
 
 	SetPeers([]string) error
+
+	AddToSet(key string, value []byte) error
+
+	// Set and list operations
+	GetSet(string) (map[interface{}]interface{}, error)
+	LPush(string, ...interface{}) error
+	LLen(string) (int64, error)
+	LRem(string, int, interface{}) error
+	LRange(key string, from, to int) ([]interface{}, error)
 }
 
 type TLSConfig struct {
