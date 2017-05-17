@@ -141,6 +141,12 @@
 			"revisionTime": "2016-09-27T10:08:44Z"
 		},
 		{
+			"checksumSHA1": "bbilAC3Am0MP1lPfSKblFsIvg4Q=",
+			"path": "github.com/spaolacci/murmur3",
+			"revision": "0d12bf811670bf6a1a63828dfbd003eded177fce",
+			"revisionTime": "2015-08-29T17:28:44Z"
+		},
+		{
 			"checksumSHA1": "9Pcc1IiRqPxEcxU2KMpkrcEGb3k=",
 			"path": "golang.org/x/net/bpf",
 			"revision": "b4690f45fa1cafc47b1c280c2e75116efe40cc13",

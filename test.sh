@@ -2,6 +2,7 @@
 set -e
 go get "github.com/go-mangos/mangos"
 
+
 echo "Testing verifier/"
 cd verifier
 go test -v
