@@ -369,6 +369,29 @@ func TestDistributedStore(t *testing.T) {
 				t.Fatalf("Expected 'bar', got '%v'", item)
 			}
 		}
+
+		// We need to let the replication actually happen
+		time.Sleep(100 * time.Millisecond)
+
+		// Check replication isn't borked
+		var r4 *httpd.KeyValueAPIObject
+		if r4, err = ds2.StorageAPI.ZRangeByScore(k, 0, 100); err != nil {
+			t.Fatal(err)
+		}
+
+		if len(r4.Meta.([]interface{})) != 2 {
+			t.Fatalf("ZRangeByScore (from secondary) expected 2, got %v", len(r4.Meta.([]interface{})))
+		}
+
+		for i, item := range r4.Meta.([]interface{}) {
+			if i == 0 && item.(string) != "foo" {
+				t.Fatalf("Expected 'foo', got '%v'", item)
+			}
+
+			if i == 1 && item.(string) != "bar" {
+				t.Fatalf("Expected 'bar', got '%v'", item)
+			}
+		}
 	})
 
 	// Tear-down

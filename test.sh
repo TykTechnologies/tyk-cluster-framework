@@ -2,12 +2,6 @@
 set -e
 go get "github.com/go-mangos/mangos"
 
-echo "Testing distributed_store/"
-cd distributed_store
-go test -v
-
-exit
-
 echo "Testing verifier/"
 cd verifier
 go test -v
