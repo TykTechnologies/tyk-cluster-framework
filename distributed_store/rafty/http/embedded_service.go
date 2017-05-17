@@ -12,10 +12,10 @@ import (
 type forwardingCommand string
 
 const (
-	forward_create forwardingCommand = "create"
-	forward_get    forwardingCommand = "get"
-	forward_update forwardingCommand = "update"
-	forward_delete forwardingCommand = "delete"
+	forward_create     forwardingCommand = "create"
+	forward_get        forwardingCommand = "get"
+	forward_update     forwardingCommand = "update"
+	forward_delete     forwardingCommand = "delete"
 	forward_add_to_set forwardingCommand = "add_to_set"
 )
 
@@ -71,7 +71,7 @@ func (e *EmbeddedService) GetSet(k string) (*KeyValueAPIObject, error) {
 	return returnData, nil
 }
 
-func (e *EmbeddedService) LPush(key string, values... interface{}) (*KeyValueAPIObject, error) {
+func (e *EmbeddedService) LPush(key string, values ...interface{}) (*KeyValueAPIObject, error) {
 	nodeData := &rafty_objects.NodeValue{
 		TTL:   0,
 		Value: "",

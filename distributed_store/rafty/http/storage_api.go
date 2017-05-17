@@ -170,7 +170,7 @@ func (s *StorageAPI) GetSet(k string) (map[interface{}]interface{}, *ErrorRespon
 	return value, nil
 }
 
-func (s *StorageAPI) LPush(key string, values... interface{}) *ErrorResponse {
+func (s *StorageAPI) LPush(key string, values ...interface{}) *ErrorResponse {
 	if err := s.store.LPush(key, values...); err != nil {
 		return NewErrorResponse("/"+key, "Could not get set: "+err.Error())
 	}

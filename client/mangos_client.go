@@ -58,7 +58,7 @@ type MangosClient struct {
 	broadcastKillChans map[string]chan struct{}
 	SubscribeChan      chan string
 	onDisconnect       func() error
-	id string
+	id                 string
 }
 
 // Init will initialise a MangosClient
@@ -73,7 +73,7 @@ func (m *MangosClient) Init(config interface{}) error {
 	return nil
 }
 
-func (m *MangosClient)  GetID() string {
+func (m *MangosClient) GetID() string {
 	return m.id
 }
 

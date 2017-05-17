@@ -59,7 +59,7 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
 		}).Info("Starting master boradcaster")
-		go startBroadcast(broadcastWith, s, &MasterConfigPayload{HttpServerAddr:raftyConfig.HttpServerAddr})
+		go startBroadcast(broadcastWith, s, &MasterConfigPayload{HttpServerAddr: raftyConfig.HttpServerAddr})
 		startListeningForMasterChange(broadcastWith, masterConfigChan)
 
 		if raftyConfig.RunInSingleServerMode == false {

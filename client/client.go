@@ -3,9 +3,9 @@ package client
 import (
 	"errors"
 	"github.com/TykTechnologies/logrus"
-	"github.com/satori/go.uuid"
 	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
+	"github.com/satori/go.uuid"
 	"net/url"
 	"strconv"
 	"strings"
@@ -47,7 +47,7 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 		}).Info("Using Redis back-end")
 		c := &RedisClient{
 			URL: connectionString,
-			id: id,
+			id:  id,
 		}
 		c.SetEncoding(baselineEncoding)
 		c.Init(nil)
@@ -92,7 +92,7 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 		c := &BeaconClient{
 			Port:     portAsInt,
 			Interval: asInt,
-			id: id,
+			id:       id,
 		}
 		c.SetEncoding(baselineEncoding)
 		c.Init(nil)
@@ -122,7 +122,7 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 		c := &MangosClient{
 			URL:              url,
 			disablePublisher: disablePublisher != "",
-			id: id,
+			id:               id,
 		}
 
 		c.SetEncoding(baselineEncoding)

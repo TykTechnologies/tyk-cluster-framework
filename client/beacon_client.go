@@ -59,7 +59,7 @@ type BeaconClient struct {
 	listening       bool
 	Encoding        encoding.Encoding
 	payloadHandlers payloadMap
-	id string
+	id              string
 }
 
 // The default Beacon payload format, because we need to handle channel subscriptions manually.
@@ -80,7 +80,7 @@ func (b *BeaconClient) Connect() error {
 	return nil
 }
 
-func (b *BeaconClient)  GetID() string {
+func (b *BeaconClient) GetID() string {
 	return b.id
 }
 

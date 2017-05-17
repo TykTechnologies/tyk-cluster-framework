@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"errors"
 	"github.com/TykTechnologies/logrus"
 	logger "github.com/TykTechnologies/tykcommon-logger"
 	"github.com/hashicorp/raft"
@@ -24,7 +25,6 @@ import (
 	"gopkg.in/vmihailenco/msgpack.v2"
 	"strconv"
 	"strings"
-	"errors"
 )
 
 var log = logger.GetLogger()
@@ -193,7 +193,7 @@ func (s *Store) GetSet(key string) (map[interface{}]interface{}, error) {
 	return set, nil
 }
 
-func (s *Store) LPush(key string, values... interface{}) error {
+func (s *Store) LPush(key string, values ...interface{}) error {
 	// Encode
 	encoded, err := msgpack.Marshal(values)
 	if err != nil {

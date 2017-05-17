@@ -1,12 +1,12 @@
 package store
 
 import (
-	"github.com/hashicorp/raft"
-	"gopkg.in/vmihailenco/msgpack.v2"
-	"fmt"
-	"io"
-	"github.com/spaolacci/murmur3"
 	"encoding/hex"
+	"fmt"
+	"github.com/hashicorp/raft"
+	"github.com/spaolacci/murmur3"
+	"gopkg.in/vmihailenco/msgpack.v2"
+	"io"
 )
 
 type fsm Store
@@ -196,7 +196,6 @@ func (f *fsm) applyLRem(key string, count int, value []byte) error {
 			return
 		}
 	}
-
 
 	if direction > 0 {
 		for i := 0; i <= end; i++ {

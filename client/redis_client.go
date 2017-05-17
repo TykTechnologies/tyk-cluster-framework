@@ -21,7 +21,7 @@ type RedisClient struct {
 	Encoding           encoding.Encoding
 	broadcastKillChans map[string]chan struct{}
 	SubscribeChan      chan string
-	id string
+	id                 string
 }
 
 // Init will initialise the redis client
@@ -36,7 +36,7 @@ func (c *RedisClient) Stop() error {
 	return c.pool.Close()
 }
 
-func (c *RedisClient)  GetID() string {
+func (c *RedisClient) GetID() string {
 	return c.id
 }
 

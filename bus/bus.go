@@ -1,45 +1,45 @@
 package bus
 
 import (
-	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
-	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
-	"strings"
 	"errors"
 	"fmt"
 	"github.com/TykTechnologies/logrus"
+	"github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
+	"strings"
 
-	"github.com/go-mangos/mangos/protocol/bus"
+	"github.com/TykTechnologies/tyk-cluster-framework/client"
+	"github.com/TykTechnologies/tykcommon-logger"
 	"github.com/go-mangos/mangos"
+	"github.com/go-mangos/mangos/protocol/bus"
 	"github.com/go-mangos/mangos/transport/tcp"
 	"github.com/satori/go.uuid"
-	"github.com/TykTechnologies/tykcommon-logger"
-	"github.com/TykTechnologies/tyk-cluster-framework/client"
 )
 
-type Bus struct{
+type Bus struct {
 	client.ClientHandler
-	conn_str string
-	sock mangos.Socket
-	me string
-	enc encoding.Encoding
-	id string
-	rawMode bool
+	conn_str        string
+	sock            mangos.Socket
+	me              string
+	enc             encoding.Encoding
+	id              string
+	rawMode         bool
 	payloadHandlers map[string]client.PayloadHandler
-	onRawMessage func([]byte) error
-	stopChan chan struct{}
+	onRawMessage    func([]byte) error
+	stopChan        chan struct{}
 }
 
 var log = logger.GetLogger()
 
 func NewBus(conn_str, me string, rawMode bool, enc encoding.Encoding) (*Bus, error) {
 	return &Bus{
-		conn_str: conn_str,
-		me: me,
-		enc: enc,
-		rawMode: rawMode,
-		id: uuid.NewV4().String(),
+		conn_str:        conn_str,
+		me:              me,
+		enc:             enc,
+		rawMode:         rawMode,
+		id:              uuid.NewV4().String(),
 		payloadHandlers: make(map[string]client.PayloadHandler),
-		stopChan: make(chan struct{}),
+		stopChan:        make(chan struct{}),
 	}, nil
 }
 
@@ -133,7 +133,6 @@ func (b *Bus) Listen() error {
 		default:
 			// nothing
 		}
-
 
 		// TODO: might want this as a pool
 		go b.handlePayload(msg)

@@ -11,12 +11,12 @@ import (
 	"github.com/go-mangos/mangos/protocol/pub"
 	"github.com/go-mangos/mangos/protocol/sub"
 	"github.com/go-mangos/mangos/transport/tcp"
+	"github.com/satori/go.uuid"
 	"net"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/satori/go.uuid"
 )
 
 type socketMap struct {
@@ -35,7 +35,7 @@ type MangosServer struct {
 	conf                  *MangosServerConf
 	encoding              encoding.Encoding
 	id                    string
-	onPublishHook 	      PublishHook
+	onPublishHook         PublishHook
 }
 
 // MangosServerConf provides the configuration details for a MangosServer
@@ -63,7 +63,7 @@ func (s *MangosServer) Init(config interface{}) error {
 	return nil
 }
 
-func (s *MangosServer)  GetID() string {
+func (s *MangosServer) GetID() string {
 	return s.id
 }
 
@@ -71,7 +71,7 @@ func (s *MangosServer)  GetID() string {
 func (s *MangosServer) Connections() []string {
 	conns := make([]string, len(s.inboundMessageClients))
 	c := 0
-	for addr, _ := range s.inboundMessageClients {
+	for addr := range s.inboundMessageClients {
 		conns[c] = addr
 		c += 1
 	}

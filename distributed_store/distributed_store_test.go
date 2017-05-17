@@ -242,7 +242,7 @@ func TestDistributedStore(t *testing.T) {
 		k := "list-test-1"
 
 		// Lists
-		_, err := ds1.StorageAPI.LPush(k,"foo", "bar", "baz", "foo")
+		_, err := ds1.StorageAPI.LPush(k, "foo", "bar", "baz", "foo")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -272,7 +272,7 @@ func TestDistributedStore(t *testing.T) {
 			t.Fatalf("After LREM, wrong number of elements in list, expected 2, got: %v", len(r))
 		}
 
-		ds1.StorageAPI.LPush(k,"fee", "fie", "foe", "fum")
+		ds1.StorageAPI.LPush(k, "fee", "fie", "foe", "fum")
 		lRange, lrErr = ds1.StorageAPI.LRange(k, 0, -1)
 		if lrErr != nil {
 			t.Fatal(lrErr)
@@ -421,7 +421,7 @@ func BenchmarkDistributedStoreRaftyClient(b *testing.B) {
 	})
 
 	writeBenchmarks := []tdType{
-		tdType{Payload: RandStringRunes(100), N: "100"},
+		{Payload: RandStringRunes(100), N: "100"},
 	}
 
 	for _, v := range writeBenchmarks {
