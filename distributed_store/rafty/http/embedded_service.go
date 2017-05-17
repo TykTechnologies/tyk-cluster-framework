@@ -146,6 +146,62 @@ func (e *EmbeddedService) LRange(key string, from, to int) (*KeyValueAPIObject, 
 	return returnData, nil
 }
 
+func (e *EmbeddedService) ZAdd(key string, score int64, value interface{}) (*KeyValueAPIObject, error) {
+	nodeData := &rafty_objects.NodeValue{
+		TTL:   0,
+		Value: "0",
+		Key:   key,
+	}
+
+	var err *ErrorResponse
+	if err = e.storageAPI.ZAdd(key, score, value); err != nil {
+		return nil, err
+	}
+
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeyZSetAdd)
+	returnData.Node = nodeData
+
+	return returnData, nil
+}
+
+func (e *EmbeddedService) ZRangeByScore(key string, min, max int64) (*KeyValueAPIObject, error) {
+	nodeData := &rafty_objects.NodeValue{
+		TTL:   0,
+		Value: "0",
+		Key:   key,
+	}
+
+	var err *ErrorResponse
+	var val []interface{}
+	if val, err = e.storageAPI.ZRangeByScore(key, min, max); err != nil {
+		return nil, err
+	}
+
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeyZSetRangeByScore)
+	returnData.Node = nodeData
+	returnData.Meta = val
+
+	return returnData, nil
+}
+
+func (e *EmbeddedService) ZRemRangeByScore(key string, min int64, max int64) (*KeyValueAPIObject, error) {
+	nodeData := &rafty_objects.NodeValue{
+		TTL:   0,
+		Value: "0",
+		Key:   key,
+	}
+
+	var err *ErrorResponse
+	if err = e.storageAPI.ZRemRangeByScore(key, min, max); err != nil {
+		return nil, err
+	}
+
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeyZSetRemRangeByScore)
+	returnData.Node = nodeData
+
+	return returnData, nil
+}
+
 func (e *EmbeddedService) CreateKey(key string, value string, ttl int) (*KeyValueAPIObject, error) {
 	nodeData := &rafty_objects.NodeValue{
 		TTL:   ttl,

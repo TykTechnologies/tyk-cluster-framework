@@ -22,6 +22,7 @@ import (
 	logger "github.com/TykTechnologies/tykcommon-logger"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
+	"github.com/wangjia184/sortedset"
 	"gopkg.in/vmihailenco/msgpack.v2"
 	"strconv"
 	"strings"
@@ -38,6 +39,9 @@ type command struct {
 	Op    string `json:"op,omitempty"`
 	Key   string `json:"key,omitempty"`
 	Count int    `json:"count,omitempty"`
+	Score int64  `json:"score,omitempty"`
+	Min   int64  `json:"min,omitempty"`
+	Max   int64  `json:"max,omitempty"`
 	Value []byte `json:"value,omitempty"`
 }
 
@@ -306,6 +310,87 @@ func (s *Store) LRange(key string, from, to int) ([]interface{}, error) {
 	}
 
 	return list[from:to], nil
+}
+
+func (s *Store) ZRangeByScore(key string, min, max int64) ([]interface{}, error) {
+	// Get the list
+	s.mu.Lock()
+	v, f := s.m[key]
+	s.mu.Unlock()
+
+	var sSetSeed []SortedSetBaseValue
+	if !f {
+		return []interface{}{}, nil
+	} else {
+		if err := msgpack.Unmarshal(v, &sSetSeed); err != nil {
+			return []interface{}{}, err
+		}
+	}
+
+	// Seed the set
+	set := sortedset.New()
+	for _, item := range sSetSeed {
+		set.AddOrUpdate(item.ID, item.Score, item.Value)
+	}
+
+	r := set.GetByScoreRange(sortedset.SCORE(min), sortedset.SCORE(max), nil)
+
+	vals := make([]interface{}, len(r))
+	for i, v := range r {
+		var decoded interface{}
+		if err := msgpack.Unmarshal(v.Value.([]byte), &decoded); err != nil {
+			return []interface{}{}, err
+		}
+		vals[i] = decoded
+	}
+
+	return vals, nil
+}
+
+func (s *Store) ZAdd(key string, score int64, value interface{}) error {
+	if s.raft.State() != raft.Leader {
+		return fmt.Errorf("not leader")
+	}
+
+	// Encode
+	encoded, err := msgpack.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	c := &command{
+		Op:    "zadd",
+		Key:   key,
+		Score: score,
+		Value: encoded,
+	}
+	b, err := msgpack.Marshal(c)
+	if err != nil {
+		return err
+	}
+
+	f := s.raft.Apply(b, raftTimeout)
+	return f.Error()
+}
+
+func (s *Store) ZRemRangeByScore(key string, min int64, max int64) error {
+	if s.raft.State() != raft.Leader {
+		return fmt.Errorf("not leader")
+	}
+
+	c := &command{
+		Op:  "zremrangebyscore",
+		Key: key,
+		Min: min,
+		Max: max,
+	}
+	b, err := msgpack.Marshal(c)
+	if err != nil {
+		return err
+	}
+
+	f := s.raft.Apply(b, raftTimeout)
+	return f.Error()
 }
 
 // Delete deletes the given key.

@@ -49,6 +49,10 @@ type Store interface {
 	LLen(string) (int64, error)
 	LRem(string, int, interface{}) error
 	LRange(key string, from, to int) ([]interface{}, error)
+
+	ZAdd(string, int64, interface{}) error
+	ZRemRangeByScore(string, int64, int64) error
+	ZRangeByScore(string, int64, int64) ([]interface{}, error)
 }
 
 type TLSConfig struct {

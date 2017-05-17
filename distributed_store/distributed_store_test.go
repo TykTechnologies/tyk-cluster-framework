@@ -304,6 +304,73 @@ func TestDistributedStore(t *testing.T) {
 		}
 	})
 
+	t.Run("Test Sorted Set Ops", func(t *testing.T) {
+		// Add entries:
+		var err error
+		k := "zset-test-1"
+
+		if _, err = ds1.StorageAPI.ZAdd(k, 1, "foo"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = ds1.StorageAPI.ZAdd(k, 2, "bar"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = ds1.StorageAPI.ZAdd(k, 3, "baz"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = ds1.StorageAPI.ZAdd(k, 4, "bim"); err != nil {
+			t.Fatal(err)
+		}
+
+		var r1 *httpd.KeyValueAPIObject
+		if r1, err = ds1.StorageAPI.ZRangeByScore(k, 3, 5); err != nil {
+			t.Fatal(err)
+		}
+
+		if len(r1.Meta.([]interface{})) != 2 {
+			t.Fatalf("ZRangeByScore expected 2, got %v", len(r1.Meta.([]interface{})))
+		}
+
+		if _, err = ds1.StorageAPI.ZAdd(k, 5, "boo"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = ds1.StorageAPI.ZAdd(k, 5, "borp"); err != nil {
+			t.Fatal(err)
+		}
+
+		var r2 *httpd.KeyValueAPIObject
+		if r2, err = ds1.StorageAPI.ZRangeByScore(k, 3, 5); err != nil {
+			t.Fatal(err)
+		}
+
+		if len(r2.Meta.([]interface{})) != 4 {
+			t.Fatalf("ZRangeByScore expected 4, got %v", len(r2.Meta.([]interface{})))
+		}
+
+		if _, err = ds1.StorageAPI.ZRemRangeByScore(k, 3, 5); err != nil {
+			t.Fatal(err)
+		}
+
+		var r3 *httpd.KeyValueAPIObject
+		if r3, err = ds1.StorageAPI.ZRangeByScore(k, 0, 100); err != nil {
+			t.Fatal(err)
+		}
+
+		if len(r3.Meta.([]interface{})) != 2 {
+			t.Fatalf("ZRangeByScore expected 2, got %v", len(r3.Meta.([]interface{})))
+		}
+
+		for i, item := range r3.Meta.([]interface{}) {
+			if i == 0 && item.(string) != "foo" {
+				t.Fatalf("Expected 'foo', got '%v'", item)
+			}
+
+			if i == 1 && item.(string) != "bar" {
+				t.Fatalf("Expected 'bar', got '%v'", item)
+			}
+		}
+	})
+
 	// Tear-down
 	ds1.Stop()
 	ds2.Stop()

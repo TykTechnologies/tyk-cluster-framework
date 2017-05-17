@@ -208,6 +208,33 @@ func (s *StorageAPI) LRange(key string, from, to int) ([]interface{}, *ErrorResp
 	return value, nil
 }
 
+func (s *StorageAPI) ZAdd(key string, score int64, value interface{}) *ErrorResponse {
+	if err := s.store.ZAdd(key, score, value); err != nil {
+		return NewErrorResponse("/"+key, "Could not add to sorted set: "+err.Error())
+	}
+
+	return nil
+}
+
+func (s *StorageAPI) ZRangeByScore(key string, min, max int64) ([]interface{}, *ErrorResponse) {
+	var r []interface{}
+	var err error
+
+	if r, err = s.store.ZRangeByScore(key, min, max); err != nil {
+		return nil, NewErrorResponse("/"+key, "Could not add get range from zset: "+err.Error())
+	}
+
+	return r, nil
+}
+
+func (s *StorageAPI) ZRemRangeByScore(key string, min int64, max int64) *ErrorResponse {
+	if err := s.store.ZRemRangeByScore(key, min, max); err != nil {
+		return NewErrorResponse("/"+key, "Could not remrange from zset: "+err.Error())
+	}
+
+	return nil
+}
+
 func (s *StorageAPI) DeleteKey(k string) (*KeyValueAPIObject, *ErrorResponse) {
 	if err := s.store.Delete(k); err != nil {
 		return nil, NewErrorResponse("/"+k, "Delete failed: "+err.Error())

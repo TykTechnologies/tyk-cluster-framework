@@ -147,6 +147,12 @@
 			"revisionTime": "2015-08-29T17:28:44Z"
 		},
 		{
+			"checksumSHA1": "VtPUIkYuPYj/LBdYbFukx736bPM=",
+			"path": "github.com/wangjia184/sortedset",
+			"revision": "f5d03557ba30bb7487f8e2783957af99d19624e1",
+			"revisionTime": "2016-05-27T07:59:05Z"
+		},
+		{
 			"checksumSHA1": "9Pcc1IiRqPxEcxU2KMpkrcEGb3k=",
 			"path": "golang.org/x/net/bpf",
 			"revision": "b4690f45fa1cafc47b1c280c2e75116efe40cc13",

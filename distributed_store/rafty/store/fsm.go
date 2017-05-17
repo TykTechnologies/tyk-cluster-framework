@@ -4,7 +4,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/hashicorp/raft"
+	"github.com/satori/go.uuid"
 	"github.com/spaolacci/murmur3"
+	"github.com/wangjia184/sortedset"
 	"gopkg.in/vmihailenco/msgpack.v2"
 	"io"
 )
@@ -29,6 +31,10 @@ func (f *fsm) Apply(l *raft.Log) interface{} {
 		return f.applyLPush(c.Key, c.Value)
 	case "lrem":
 		return f.applyLRem(c.Key, c.Count, c.Value)
+	case "zadd":
+		return f.applyZADD(c.Key, c.Score, c.Value)
+	case "zremrangebyscore":
+		return f.applyZREMRANGEBYSCORE(c.Key, c.Min, c.Max)
 	default:
 		panic(fmt.Sprintf("unrecognized command op: %s", c.Op))
 	}
@@ -209,6 +215,110 @@ func (f *fsm) applyLRem(key string, count int, value []byte) error {
 
 	// Re-encode
 	encoded, err := msgpack.Marshal(newL)
+	if err != nil {
+		return err
+	}
+
+	f.m[key] = encoded
+	return nil
+}
+
+type SortedSetBaseValue struct {
+	ID    string
+	Value interface{}
+	Score sortedset.SCORE
+}
+
+func (f *fsm) applyZADD(key string, score int64, value []byte) error {
+	// Get the encoded sorted set:
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	v, found := f.m[key]
+
+	var l []SortedSetBaseValue
+	if !found {
+		l = make([]SortedSetBaseValue, 0)
+	} else {
+		if err := msgpack.Unmarshal(v, &l); err != nil {
+			return err
+		}
+	}
+
+	// Seed the set
+	set := sortedset.New()
+	for _, item := range l {
+		set.AddOrUpdate(item.ID, item.Score, item.Value)
+	}
+
+	// Keys must be unique in the set
+	set.AddOrUpdate(uuid.NewV4().String(), sortedset.SCORE(score), value)
+
+	// Dump the set
+	allNodes := set.GetByRankRange(1, -1, false)
+	count := set.GetCount()
+
+	toStore := make([]SortedSetBaseValue, count)
+	for i, node := range allNodes {
+		toStore[i] = SortedSetBaseValue{
+			ID:    node.Key(),
+			Score: node.Score(),
+			Value: node.Value,
+		}
+	}
+
+	// Re-encode
+	encoded, err := msgpack.Marshal(toStore)
+	if err != nil {
+		return err
+	}
+
+	f.m[key] = encoded
+	return nil
+}
+
+func (f *fsm) applyZREMRANGEBYSCORE(key string, min int64, max int64) error {
+	// Get the encoded sorted set:
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	v, found := f.m[key]
+
+	var l []SortedSetBaseValue
+	if !found {
+		return nil
+	}
+
+	if err := msgpack.Unmarshal(v, &l); err != nil {
+		return err
+	}
+
+	// Seed the set
+	set := sortedset.New()
+	for _, item := range l {
+		set.AddOrUpdate(item.ID, item.Score, item.Value)
+	}
+
+	r := set.GetByScoreRange(sortedset.SCORE(min), sortedset.SCORE(max), nil)
+	for _, i := range r {
+		set.Remove(i.Key())
+	}
+
+	// Dump the set
+	allNodes := set.GetByRankRange(1, -1, false)
+	count := set.GetCount()
+
+	toStore := make([]SortedSetBaseValue, count)
+	for i, node := range allNodes {
+		toStore[i] = SortedSetBaseValue{
+			ID:    node.Key(),
+			Score: node.Score(),
+			Value: node.Value,
+		}
+	}
+
+	// Re-encode
+	encoded, err := msgpack.Marshal(toStore)
 	if err != nil {
 		return err
 	}

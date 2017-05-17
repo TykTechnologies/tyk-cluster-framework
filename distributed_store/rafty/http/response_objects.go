@@ -9,16 +9,19 @@ import (
 type ActionType string
 
 const (
-	ActionKeyCreated      ActionType = "created"
-	ActionKeyModified     ActionType = "modified"
-	ActionKeyDeleted      ActionType = "deleted"
-	ActionKeyRequested    ActionType = "requested"
-	ActionKeySetAdded     ActionType = "set_add"
-	ActionKeySetRequested ActionType = "set_requested"
-	ActionKeyListPush     ActionType = "list_push"
-	ActionKeyListRemove   ActionType = "list_remove"
-	ActionKeyListLength   ActionType = "list_length"
-	ActionKeyListRange    ActionType = "list_range"
+	ActionKeyCreated             ActionType = "created"
+	ActionKeyModified            ActionType = "modified"
+	ActionKeyDeleted             ActionType = "deleted"
+	ActionKeyRequested           ActionType = "requested"
+	ActionKeySetAdded            ActionType = "set_add"
+	ActionKeySetRequested        ActionType = "set_requested"
+	ActionKeyListPush            ActionType = "list_push"
+	ActionKeyListRemove          ActionType = "list_remove"
+	ActionKeyListLength          ActionType = "list_length"
+	ActionKeyListRange           ActionType = "list_range"
+	ActionKeyZSetAdd             ActionType = "zset_add"
+	ActionKeyZSetRangeByScore    ActionType = "zset_range_score"
+	ActionKeyZSetRemRangeByScore ActionType = "zset_remrange_score"
 )
 
 type KeyValueAPIObject struct {
