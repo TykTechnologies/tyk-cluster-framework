@@ -18,6 +18,7 @@ import (
 	logger "github.com/TykTechnologies/tykcommon-logger"
 	"time"
 
+	"errors"
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"path/filepath"
@@ -58,9 +59,9 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 	if broadcastWith != nil {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
-		}).Info("Starting master boradcaster")
-		go startBroadcast(broadcastWith, s, &MasterConfigPayload{HttpServerAddr: raftyConfig.HttpServerAddr})
+		}).Info("Starting master broadcaster")
 		startListeningForMasterChange(broadcastWith, masterConfigChan)
+		go startBroadcast(broadcastWith, s, &MasterConfigPayload{HttpServerAddr: raftyConfig.HttpServerAddr})
 
 		if raftyConfig.RunInSingleServerMode == false {
 			select {
@@ -72,7 +73,10 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 				}).Info("Got leader. Joining: ", JoinAddress)
 				break
 
-			case <-time.After(time.Second * 5):
+			case <-time.After(time.Second * time.Duration(raftyConfig.JoinTimeout)):
+				log.WithFields(logrus.Fields{
+					"prefix": logPrefix,
+				}).Info("No leader found, starting...")
 				// Timeout reached, lets re-bootstrap
 				raftyConfig.RunInSingleServerMode = true
 
@@ -83,7 +87,7 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 
 				log.WithFields(logrus.Fields{
 					"prefix": logPrefix,
-				}).Info("No leader found, starting and waiting for set peers")
+				}).Info("waiting for set peers")
 			}
 		}
 
@@ -131,12 +135,12 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 	if !s.IsLeader() {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
-		}).Info("Leaving cluster")
+		}).Info("Follower leaving cluster")
 		leaveErr := leave(s.Leader(), raftyConfig.RaftServerAddress, raftyConfig.TLSConfig != nil)
 		if leaveErr != nil {
 			log.WithFields(logrus.Fields{
 				"prefix": logPrefix,
-			}).Error("Raft server tried to leave, error: ", leaveErr)
+			}).Fatal("Raft server tried to leave, error: ", leaveErr)
 		}
 		return
 	}
@@ -144,7 +148,10 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 	log.WithFields(logrus.Fields{
 		"prefix": logPrefix,
 	}).Info("Leader leaving cluster")
-	s.RemovePeer(raftyConfig.RaftServerAddress)
+	err := s.RemovePeer(raftyConfig.RaftServerAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func masterListener(inBoundChan chan MasterConfigPayload, raftyConfig *Config) {
@@ -171,7 +178,7 @@ func startBroadcast(msgClient client.Client, s *store.Store, raftyConfig *Master
 	for {
 		if !isPublishing {
 			if s.IsLeader() {
-				thisPayload, pErr := payloads.NewPayload(*raftyConfig)
+				thisPayload, pErr := payloads.NewPayloadNoID(*raftyConfig)
 
 				if pErr != nil {
 					log.WithFields(logrus.Fields{
@@ -182,7 +189,7 @@ func startBroadcast(msgClient client.Client, s *store.Store, raftyConfig *Master
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf-exp",
 				}).Debug("Sending Broadcast: %v", raftyConfig.HttpServerAddr)
-				if bErr := msgClient.Broadcast("tcf.cluster.distributed_store.leader", thisPayload, 1); bErr != nil {
+				if bErr := msgClient.Broadcast("tcf.cluster.distributed_store.leader", thisPayload, 5); bErr != nil {
 					log.WithFields(logrus.Fields{
 						"prefix": logPrefix,
 					}).Fatal(bErr)
@@ -196,6 +203,8 @@ func startBroadcast(msgClient client.Client, s *store.Store, raftyConfig *Master
 		time.Sleep(time.Microsecond * 100)
 	}
 }
+
+var masterFound bool
 
 func startListeningForMasterChange(msgClient client.Client, configChan chan MasterConfigPayload) {
 	msgClient.Subscribe("tcf.cluster.distributed_store.leader", func(payload payloads.Payload) {
@@ -211,10 +220,14 @@ func startListeningForMasterChange(msgClient client.Client, configChan chan Mast
 
 		if !skip {
 			log.WithFields(logrus.Fields{
-				"prefix": "tcf-exp",
+				"prefix": logPrefix,
 			}).Debugf("RECEIVED: %v", d)
 
-			configChan <- d
+			// Only change leadership once, Let raft handle it thereafter.
+			if !masterFound {
+				configChan <- d
+				masterFound = true
+			}
 		}
 	})
 }
@@ -254,6 +267,9 @@ func leave(leaderAddr, raftAddr string, secure bool) error {
 
 	apiAddr := store.GetHttpAPIFromRaftURL(leaderAddr)
 
+	if apiAddr == "" {
+		return errors.New("Leader unknown, can;t leave")
+	}
 	resp, err := http.Post(
 		fmt.Sprintf(trans+"://%s/remove", apiAddr),
 		"application-type/json",

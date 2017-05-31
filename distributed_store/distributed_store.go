@@ -8,6 +8,7 @@ import (
 	"github.com/TykTechnologies/tyk-cluster-framework/distributed_store/rafty/http"
 	logger "github.com/TykTechnologies/tykcommon-logger"
 	"github.com/nu7hatch/gouuid"
+	"net"
 	"os"
 )
 
@@ -34,6 +35,19 @@ func NewDistributedStore(config *rafty.Config) (*DistributedStore, error) {
 	}
 
 	if config != nil {
+		// Change hostnames to IP addresses
+		httpAddr, err := net.ResolveTCPAddr("tcp", config.HttpServerAddr)
+		if err != nil {
+			return nil, err
+		}
+
+		raftAddr, err := net.ResolveTCPAddr("tcp", config.RaftServerAddress)
+		if err != nil {
+			return nil, err
+		}
+
+		config.HttpServerAddr = httpAddr.String()
+		config.RaftServerAddress = raftAddr.String()
 		d.config = config
 	}
 

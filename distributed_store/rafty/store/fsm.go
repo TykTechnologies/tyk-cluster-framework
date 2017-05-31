@@ -1,10 +1,10 @@
 package store
 
 import (
+	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"github.com/hashicorp/raft"
-	"github.com/satori/go.uuid"
 	"github.com/spaolacci/murmur3"
 	"github.com/wangjia184/sortedset"
 	"gopkg.in/vmihailenco/msgpack.v2"
@@ -251,8 +251,9 @@ func (f *fsm) applyZADD(key string, score int64, value []byte) error {
 		set.AddOrUpdate(item.ID, item.Score, item.Value)
 	}
 
-	// Keys must be unique in the set
-	set.AddOrUpdate(uuid.NewV4().String(), sortedset.SCORE(score), value)
+	// USe an md5 to represent value, otherwise add or update wont update
+	vid := fmt.Sprintf("%x", md5.Sum(value))
+	set.AddOrUpdate(vid, sortedset.SCORE(score), value)
 
 	// Dump the set
 	allNodes := set.GetByRankRange(1, -1, false)

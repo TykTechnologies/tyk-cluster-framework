@@ -547,7 +547,8 @@ func GetHttpAPIFromRaftURL(leaderAddr string) string {
 
 	asInt, intErr := strconv.Atoi(portStr)
 	if intErr != nil {
-		log.Fatal(intErr, "was: ", portStr)
+		log.Error(intErr, " - LEADER ISSUE: Could not decode port string, was: ", portStr)
+		return ""
 	}
 	apiAddr := host + ":" + strconv.Itoa(asInt-100)
 

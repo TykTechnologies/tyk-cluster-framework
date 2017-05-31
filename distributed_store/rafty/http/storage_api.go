@@ -53,6 +53,7 @@ func (q *qSnapShot) String() string {
 
 func newQueueSnapShot() *qSnapShot {
 	return &qSnapShot{
+		qmu:           sync.Mutex{},
 		queueSnapshot: make(map[string]ttlIndexElement),
 	}
 }

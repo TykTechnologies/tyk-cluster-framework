@@ -2,6 +2,11 @@
 set -e
 go get "github.com/go-mangos/mangos"
 
+echo "Testing client/"
+cd client
+go test -v --run TestBeaconClient
+exit
+
 echo "Testing verifier/"
 cd verifier
 go test -v

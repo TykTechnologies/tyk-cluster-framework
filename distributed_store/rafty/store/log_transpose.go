@@ -20,19 +20,19 @@ func (c *ConvertedLogrusLogger) Write(p []byte) (n int, err error) {
 			}).Debug(fixed)
 		}
 		if strings.Contains(asStr, "[INFO]") {
-			fixed := strings.Replace(asStr, "[INFO]", "", 1)
+			fixed := strings.Replace(strings.Replace(asStr, "[INFO]", "", 1), "\n", "", 1)
 			c.LogInstance.WithFields(logrus.Fields{
 				"prefix": c.Prefix,
 			}).Info(fixed)
 		}
 		if strings.Contains(asStr, "[ERR]") {
-			fixed := strings.Replace(asStr, "[ERR]", "", 1)
+			fixed := strings.Replace(strings.Replace(asStr, "[ERR]", "", 1), "\n", "", 1)
 			c.LogInstance.WithFields(logrus.Fields{
 				"prefix": c.Prefix,
 			}).Error(fixed)
 		}
 		if strings.Contains(asStr, "[WARN]") {
-			fixed := strings.Replace(asStr, "[WARNING]", "", 1)
+			fixed := strings.Replace(strings.Replace(asStr, "[WARNING]", "", 1), "\n", "", 1)
 			c.LogInstance.WithFields(logrus.Fields{
 				"prefix": c.Prefix,
 			}).Warning(fixed)

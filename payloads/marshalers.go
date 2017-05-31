@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	tykEnc "github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 // Marshal will call the correct marshallers for the payload, because payloads are double-encoded
@@ -13,6 +14,8 @@ func Marshal(from Payload, enc tykEnc.Encoding) (interface{}, error) {
 	switch enc {
 	case tykEnc.JSON:
 		return marshalJSON(from)
+	case tykEnc.MPK:
+		return marshalMPK(from)
 	case tykEnc.NONE:
 		return marshalNone(from)
 	default:
@@ -26,6 +29,14 @@ func marshalJSON(from Payload) (interface{}, error) {
 	// First encode the inner data payload
 	newPayload.Encode()
 	return json.Marshal(newPayload)
+}
+
+func marshalMPK(from Payload) (interface{}, error) {
+	// Copy the object, we don;t want to operate on the same payload (NOT IDEAL)
+	newPayload := from.Copy()
+	// First encode the inner data payload
+	newPayload.Encode()
+	return msgpack.Marshal(newPayload)
 }
 
 func marshalNone(from Payload) (interface{}, error) {

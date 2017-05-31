@@ -67,6 +67,9 @@ type Beacon struct {
 	inAddr     *net.UDPAddr
 	outAddr    *net.UDPAddr
 	sync.Mutex
+	listening  bool
+	publishing bool
+	started    bool
 }
 
 // New creates a new beacon on a certain UDP port.
@@ -81,7 +84,10 @@ func New() (b *Beacon) {
 }
 
 func (b *Beacon) start() (err error) {
-
+	if b.started == true {
+		return
+	}
+	b.started = true
 	if b.iface == "" {
 		b.iface = os.Getenv("BEACON_INTERFACE")
 	}
@@ -211,8 +217,8 @@ func (b *Beacon) start() (err error) {
 		return errors.New("no interfaces to bind to")
 	}
 
-	go b.listen()
-	go b.signal()
+	//go b.listen()
+	// go b.signal()
 
 	return nil
 }
@@ -284,6 +290,7 @@ func (b *Beacon) Publish(transmit []byte) error {
 	b.transmit = transmit
 
 	err := b.start()
+	go b.signal()
 
 	return err
 }
@@ -300,6 +307,13 @@ func (b *Beacon) Silence() *Beacon {
 // Subscribe starts listening to other peers; zero-sized filter means get everything.
 func (b *Beacon) Subscribe(filter []byte) *Beacon {
 	b.filter = filter
+	err := b.start()
+
+	if err != nil {
+		panic(err)
+	}
+
+	go b.listen()
 	return b
 }
 
@@ -315,6 +329,12 @@ func (b *Beacon) Signals() chan interface{} {
 }
 
 func (b *Beacon) listen() {
+	if b.listening {
+		return
+	}
+
+	b.listening = true
+
 	b.wg.Add(1)
 	defer b.wg.Done()
 
@@ -329,6 +349,7 @@ func (b *Beacon) listen() {
 
 		b.Lock()
 		if b.terminated {
+			b.listening = false
 			b.Unlock()
 			return
 		}
@@ -365,6 +386,12 @@ func (b *Beacon) listen() {
 }
 
 func (b *Beacon) signal() {
+	if b.publishing {
+		return
+	}
+
+	b.publishing = true
+
 	b.wg.Add(1)
 	defer b.wg.Done()
 
@@ -381,6 +408,7 @@ func (b *Beacon) signal() {
 		case <-ticker:
 			b.Lock()
 			if b.terminated {
+				b.publishing = false
 				b.Unlock()
 				return
 			}

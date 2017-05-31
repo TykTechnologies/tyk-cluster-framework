@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -135,7 +136,7 @@ func (c *APIClient) CreateKey(key string, value interface{}, ttl string) (*KeyVa
 
 	u := c.targetURL + "/" + key
 	thisHttpRequest, rErr := http.NewRequest("POST", u, bytes.NewBufferString(vals.Encode()))
-	thisHttpRequest.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	thisHttpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	if rErr != nil {
 		return nil, rErr
@@ -186,7 +187,7 @@ func (c *APIClient) UpdateKey(key string, value interface{}, ttl string) (*KeyVa
 
 	u := c.targetURL + "/" + key
 	thisHttpRequest, rErr := http.NewRequest("PUT", u, bytes.NewBufferString(vals.Encode()))
-	thisHttpRequest.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	thisHttpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	if rErr != nil {
 		return nil, rErr
@@ -219,3 +220,225 @@ func (c *APIClient) UpdateKey(key string, value interface{}, ttl string) (*KeyVa
 
 	return newAPIReturnObject, nil
 }
+
+func (c *APIClient) AddToSet(key string, value []byte) (*KeyValueAPIObject, error) {
+	// Value already encoded
+	valueToSend := string(value)
+
+	vals := url.Values{}
+	vals.Add("value", valueToSend)
+
+	u := c.targetURL + "/sadd/" + key
+	thisHttpRequest, rErr := http.NewRequest("PUT", u, bytes.NewBufferString(vals.Encode()))
+	thisHttpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	if rErr != nil {
+		return nil, rErr
+	}
+
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	resp, respErr := client.Do(thisHttpRequest)
+	if respErr != nil {
+		return nil, respErr
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, c.processErrorResponse(resp)
+	}
+
+	body, bErr := ioutil.ReadAll(resp.Body)
+	if bErr != nil {
+		return nil, bErr
+	}
+
+	newAPIReturnObject := NewKeyValueAPIObject()
+
+	mErr := json.Unmarshal(body, newAPIReturnObject)
+	if mErr != nil {
+		return nil, mErr
+	}
+
+	return newAPIReturnObject, nil
+}
+
+func (c *APIClient) LPush(key string, values ...interface{}) (*KeyValueAPIObject, error) {
+	vals := url.Values{}
+	valueAsJSON, encErr := json.Marshal(values)
+	if encErr != nil {
+		return nil, encErr
+	}
+	vals.Add("value", string(valueAsJSON))
+
+	u := c.targetURL + "/lpush/" + key
+	thisHttpRequest, rErr := http.NewRequest("PUT", u, bytes.NewBufferString(vals.Encode()))
+	thisHttpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	if rErr != nil {
+		return nil, rErr
+	}
+
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	resp, respErr := client.Do(thisHttpRequest)
+	if respErr != nil {
+		return nil, respErr
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, c.processErrorResponse(resp)
+	}
+
+	body, bErr := ioutil.ReadAll(resp.Body)
+	if bErr != nil {
+		return nil, bErr
+	}
+
+	newAPIReturnObject := NewKeyValueAPIObject()
+
+	mErr := json.Unmarshal(body, newAPIReturnObject)
+	if mErr != nil {
+		return nil, mErr
+	}
+
+	return newAPIReturnObject, nil
+}
+
+func (c *APIClient) LRem(key string, count int, value interface{}) (*KeyValueAPIObject, error) {
+	vals := url.Values{}
+	valueAsJSON, encErr := json.Marshal(value)
+	if encErr != nil {
+		return nil, encErr
+	}
+
+	vals.Add("value", string(valueAsJSON))
+	vals.Add("count", strconv.Itoa(count))
+
+	u := c.targetURL + "/lrem/" + key
+	thisHttpRequest, rErr := http.NewRequest("DELETE", u, bytes.NewBufferString(vals.Encode()))
+	thisHttpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	if rErr != nil {
+		return nil, rErr
+	}
+
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	resp, respErr := client.Do(thisHttpRequest)
+	if respErr != nil {
+		return nil, respErr
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, c.processErrorResponse(resp)
+	}
+
+	body, bErr := ioutil.ReadAll(resp.Body)
+	if bErr != nil {
+		return nil, bErr
+	}
+
+	newAPIReturnObject := NewKeyValueAPIObject()
+
+	mErr := json.Unmarshal(body, newAPIReturnObject)
+	if mErr != nil {
+		return nil, mErr
+	}
+
+	return newAPIReturnObject, nil
+}
+
+func (c *APIClient) ZAdd(key string, score int64, value interface{}) (*KeyValueAPIObject, error) {
+	vals := url.Values{}
+	valueAsJSON, encErr := json.Marshal(value)
+	if encErr != nil {
+		return nil, encErr
+	}
+
+	vals.Add("value", string(valueAsJSON))
+	vals.Add("score", strconv.Itoa(int(score)))
+
+	u := c.targetURL + "/zadd/" + key
+	thisHttpRequest, rErr := http.NewRequest("PUT", u, bytes.NewBufferString(vals.Encode()))
+	thisHttpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	if rErr != nil {
+		return nil, rErr
+	}
+
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	resp, respErr := client.Do(thisHttpRequest)
+	if respErr != nil {
+		return nil, respErr
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, c.processErrorResponse(resp)
+	}
+
+	body, bErr := ioutil.ReadAll(resp.Body)
+	if bErr != nil {
+		return nil, bErr
+	}
+
+	newAPIReturnObject := NewKeyValueAPIObject()
+
+	mErr := json.Unmarshal(body, newAPIReturnObject)
+	if mErr != nil {
+		return nil, mErr
+	}
+
+	return newAPIReturnObject, nil
+}
+
+func (c *APIClient) ZRemRangeByScore(key string, min int64, max int64) (*KeyValueAPIObject, error) {
+	vals := url.Values{}
+	vals.Add("min", strconv.Itoa(int(min)))
+	vals.Add("max", strconv.Itoa(int(max)))
+
+	u := c.targetURL + "/zremrangebyscore/" + key
+	thisHttpRequest, rErr := http.NewRequest("PUT", u, bytes.NewBufferString(vals.Encode()))
+	thisHttpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	if rErr != nil {
+		return nil, rErr
+	}
+
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	resp, respErr := client.Do(thisHttpRequest)
+	if respErr != nil {
+		return nil, respErr
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, c.processErrorResponse(resp)
+	}
+
+	body, bErr := ioutil.ReadAll(resp.Body)
+	if bErr != nil {
+		return nil, bErr
+	}
+
+	newAPIReturnObject := NewKeyValueAPIObject()
+
+	mErr := json.Unmarshal(body, newAPIReturnObject)
+	if mErr != nil {
+		return nil, mErr
+	}
+
+	return newAPIReturnObject, nil
+}
+
+// TODO: Read commands for advanced objects

@@ -23,6 +23,11 @@ func (s *Service) forwardRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	apiHost := store.GetHttpAPIFromRaftURL(s.store.Leader())
+	if apiHost == "" {
+		log.Error("Leader unknown, won't forward")
+		return
+	}
+
 	targetAddr := trans + "://" + apiHost
 
 	asURL, urlErr := url.Parse(targetAddr)

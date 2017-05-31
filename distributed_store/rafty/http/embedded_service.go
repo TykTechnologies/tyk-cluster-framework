@@ -12,11 +12,15 @@ import (
 type forwardingCommand string
 
 const (
-	forward_create     forwardingCommand = "create"
-	forward_get        forwardingCommand = "get"
-	forward_update     forwardingCommand = "update"
-	forward_delete     forwardingCommand = "delete"
-	forward_add_to_set forwardingCommand = "add_to_set"
+	forward_create           forwardingCommand = "create"
+	forward_get              forwardingCommand = "get"
+	forward_update           forwardingCommand = "update"
+	forward_delete           forwardingCommand = "delete"
+	forward_add_to_set       forwardingCommand = "add_to_set"
+	forward_lpush            forwardingCommand = "lpush"
+	forward_lrem             forwardingCommand = "lrem"
+	forward_zadd             forwardingCommand = "zadd"
+	forward_zremrangebyscore forwardingCommand = "zremrangebyscore"
 )
 
 type EmbeddedService struct {
@@ -24,11 +28,34 @@ type EmbeddedService struct {
 	TLS        bool
 }
 
+type ForwardNodeValue struct {
+	rafty_objects.NodeValue
+	LPush struct {
+		Values []interface{}
+	}
+	LREM struct {
+		Count int
+		Value interface{}
+	}
+	ZADD struct {
+		Score int64
+		Value interface{}
+	}
+	ZREMRANGEBYSCORE struct {
+		Min int64
+		Max int64
+	}
+}
+
 func NewEmbeddedService(useTLS bool, storageAPI *StorageAPI) *EmbeddedService {
 	return &EmbeddedService{
 		storageAPI: storageAPI,
 		TLS:        useTLS,
 	}
+}
+
+func (e *EmbeddedService) Leader() string {
+	return e.storageAPI.store.Leader()
 }
 
 func (e *EmbeddedService) AddToSet(key string, value []byte) (*KeyValueAPIObject, error) {
@@ -39,7 +66,7 @@ func (e *EmbeddedService) AddToSet(key string, value []byte) (*KeyValueAPIObject
 	}
 
 	if !e.storageAPI.store.IsLeader() {
-		return e.forwardCommand(key, forward_add_to_set, nodeData)
+		return e.forwardCommand(key, forward_add_to_set, &ForwardNodeValue{NodeValue: *nodeData})
 	}
 
 	var err *ErrorResponse
@@ -78,6 +105,12 @@ func (e *EmbeddedService) LPush(key string, values ...interface{}) (*KeyValueAPI
 		Key:   key,
 	}
 
+	if !e.storageAPI.store.IsLeader() {
+		f := ForwardNodeValue{NodeValue: *nodeData}
+		f.LPush.Values = values
+		return e.forwardCommand(key, forward_lpush, &f)
+	}
+
 	var err *ErrorResponse
 	if err = e.storageAPI.LPush(key, values...); err != nil {
 		return nil, err
@@ -113,6 +146,13 @@ func (e *EmbeddedService) LRem(key string, count int, value interface{}) (*KeyVa
 		TTL:   0,
 		Value: "0",
 		Key:   key,
+	}
+
+	if !e.storageAPI.store.IsLeader() {
+		f := ForwardNodeValue{NodeValue: *nodeData}
+		f.LREM.Count = count
+		f.LREM.Value = value
+		return e.forwardCommand(key, forward_lrem, &f)
 	}
 
 	var err *ErrorResponse
@@ -153,6 +193,13 @@ func (e *EmbeddedService) ZAdd(key string, score int64, value interface{}) (*Key
 		Key:   key,
 	}
 
+	if !e.storageAPI.store.IsLeader() {
+		f := ForwardNodeValue{NodeValue: *nodeData}
+		f.ZADD.Value = value
+		f.ZADD.Score = score
+		return e.forwardCommand(key, forward_zadd, &f)
+	}
+
 	var err *ErrorResponse
 	if err = e.storageAPI.ZAdd(key, score, value); err != nil {
 		return nil, err
@@ -191,6 +238,13 @@ func (e *EmbeddedService) ZRemRangeByScore(key string, min int64, max int64) (*K
 		Key:   key,
 	}
 
+	if !e.storageAPI.store.IsLeader() {
+		f := ForwardNodeValue{NodeValue: *nodeData}
+		f.ZREMRANGEBYSCORE.Max = max
+		f.ZREMRANGEBYSCORE.Min = min
+		return e.forwardCommand(key, forward_zremrangebyscore, &f)
+	}
+
 	var err *ErrorResponse
 	if err = e.storageAPI.ZRemRangeByScore(key, min, max); err != nil {
 		return nil, err
@@ -210,7 +264,7 @@ func (e *EmbeddedService) CreateKey(key string, value string, ttl int) (*KeyValu
 	}
 
 	if !e.storageAPI.store.IsLeader() {
-		return e.forwardCommand(key, forward_create, nodeData)
+		return e.forwardCommand(key, forward_create, &ForwardNodeValue{NodeValue: *nodeData})
 	}
 
 	var n *rafty_objects.NodeValue
@@ -249,7 +303,7 @@ func (e *EmbeddedService) UpdateKey(key, value string, ttl int) (*KeyValueAPIObj
 
 	// Write data to the store
 	if !e.storageAPI.store.IsLeader() {
-		e.forwardCommand(key, forward_update, nodeValue)
+		return e.forwardCommand(key, forward_update, &ForwardNodeValue{NodeValue: *nodeValue})
 	}
 	var err *ErrorResponse
 	var newNodeValue *rafty_objects.NodeValue
@@ -277,7 +331,7 @@ func (e *EmbeddedService) GetKey(key string) (*KeyValueAPIObject, error) {
 func (e *EmbeddedService) DeleteKey(key string) (*KeyValueAPIObject, error) {
 
 	if !e.storageAPI.store.IsLeader() {
-		e.forwardCommand(key, forward_delete, nil)
+		return e.forwardCommand(key, forward_delete, nil)
 	}
 	if _, err := e.storageAPI.DeleteKey(key); err != nil {
 		return nil, err
@@ -289,13 +343,17 @@ func (e *EmbeddedService) DeleteKey(key string) (*KeyValueAPIObject, error) {
 	return delResp, nil
 }
 
-func (e *EmbeddedService) forwardCommand(key string, command forwardingCommand, value *rafty_objects.NodeValue) (*KeyValueAPIObject, error) {
+func (e *EmbeddedService) forwardCommand(key string, command forwardingCommand, value *ForwardNodeValue) (*KeyValueAPIObject, error) {
 	trans := "http"
 	if e.TLS {
 		trans = "https"
 	}
 
 	apiHost := store.GetHttpAPIFromRaftURL(e.storageAPI.store.Leader())
+	if apiHost == "" {
+		return nil, errors.New("Leader unknown, can't forward")
+	}
+
 	targetAddr := trans + "://" + apiHost
 
 	_, urlErr := url.Parse(targetAddr)
@@ -315,6 +373,16 @@ func (e *EmbeddedService) forwardCommand(key string, command forwardingCommand, 
 		return c.CreateKey(key, value.Value, strconv.Itoa(value.TTL))
 	case forward_delete:
 		return c.DeleteKey(key)
+	case forward_add_to_set:
+		return c.AddToSet(key, []byte(value.Value))
+	case forward_lpush:
+		return c.LPush(key, value.LPush.Values)
+	case forward_lrem:
+		return c.LRem(key, value.LREM.Count, value.LREM.Value)
+	case forward_zadd:
+		return c.ZAdd(key, value.ZADD.Score, value.ZADD.Value)
+	case forward_zremrangebyscore:
+		return c.ZRemRangeByScore(key, value.ZREMRANGEBYSCORE.Min, value.ZREMRANGEBYSCORE.Max)
 	}
 
 	return nil, errors.New("Command not recognised")

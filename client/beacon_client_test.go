@@ -20,7 +20,7 @@ func TestBeaconClient(t *testing.T) {
 	ch := "tcftestbeacon"
 	chMsg := "Channel 1"
 	var pl payloads.Payload
-	if pl, err = payloads.NewPayload(testPayloadData{chMsg}); err != nil {
+	if pl, err = payloads.NewPayloadNoID(testPayloadData{chMsg}); err != nil {
 		t.Fatal(err)
 	}
 

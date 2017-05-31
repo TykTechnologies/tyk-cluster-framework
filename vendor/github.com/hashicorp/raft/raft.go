@@ -1221,7 +1221,7 @@ func (r *Raft) processLog(l *Log, future *logFuture, precommit bool) (stepDown b
 		fallthrough
 	case LogRemovePeer:
 		peers := decodePeers(l.Data, r.trans)
-		r.logger.Printf("[DEBUG] raft: Node %v updated peer set (%v): %v", r.localAddr, l.Type, peers)
+		r.logger.Printf("[INFO] raft: Node %v updated peer set (%v): %v", r.localAddr, l.Type, peers)
 
 		// If the peer set does not include us, remove all other peers
 		removeSelf := !PeerContained(peers, r.localAddr) && l.Type == LogRemovePeer

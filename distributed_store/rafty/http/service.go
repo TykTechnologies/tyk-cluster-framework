@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/schema"
 	"gopkg.in/vmihailenco/msgpack.v2"
 	"net/http"
+	"strconv"
 )
 
 var log = logger.GetLogger()
@@ -101,6 +102,11 @@ func (s *Service) Start() error {
 	r.HandleFunc("/key/{name}", s.handleUpdateKey).Methods("PUT")
 	r.HandleFunc("/key/{name}", s.handleCreateKey).Methods("POST")
 	r.HandleFunc("/key/{name}", s.handleDeleteKey).Methods("DELETE")
+	r.HandleFunc("/key/sadd/{name}", s.handleAddToSet).Methods("PUT")
+	r.HandleFunc("/key/lpush/{name}", s.handleLPush).Methods("PUT")
+	r.HandleFunc("/key/lrem/{name}", s.handleLRem).Methods("DELETE")
+	r.HandleFunc("/key/zadd/{name}", s.handleZAdd).Methods("PUT")
+	r.HandleFunc("/key/zremrangebyscore/{name}", s.handleZRemRangeByScore).Methods("PUT")
 
 	go func() {
 		// Check TLS
@@ -380,7 +386,7 @@ func (s *Service) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	k := vars["name"]
 	if k == "" {
-		s.writeToClient(w, r, NewErrorResponse("/", "key cannot be empty for POST"), http.StatusBadRequest)
+		s.writeToClient(w, r, NewErrorResponse("/", "key cannot be empty for DELETE"), http.StatusBadRequest)
 		return
 	}
 
@@ -393,4 +399,255 @@ func (s *Service) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 	delResp.Node.Key = "/" + k
 
 	s.writeToClient(w, r, delResp, http.StatusOK)
+}
+
+func (s *Service) handleAddToSet(w http.ResponseWriter, r *http.Request) {
+	if !s.store.IsLeader() {
+		s.forwardRequest(w, r)
+		return
+	}
+
+	vars := mux.Vars(r)
+	k := vars["name"]
+	if k == "" {
+		s.writeToClient(w, r, NewErrorResponse("/", "key cannot be empty for PUT"), http.StatusBadRequest)
+		return
+	}
+
+	// Read the parameters from the POST body as form params
+	err := r.ParseForm()
+	if err != nil {
+		// Handle error
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not parse form data: "+err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	value := r.Form.Get("value")
+	if value == "" {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Value cannot be empty"), http.StatusBadRequest)
+		return
+	}
+
+	// Write data to the store
+	if _, err := s.StorageAPI.AddToSet(k, []byte(value)); err != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not add to set: "+err.ErrorCode.Reason), http.StatusInternalServerError)
+		return
+	}
+
+	// Return ok
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeySetAdded)
+	s.writeToClient(w, r, returnData, http.StatusOK)
+}
+
+func (s *Service) handleLPush(w http.ResponseWriter, r *http.Request) {
+	if !s.store.IsLeader() {
+		s.forwardRequest(w, r)
+		return
+	}
+
+	vars := mux.Vars(r)
+	k := vars["name"]
+	if k == "" {
+		s.writeToClient(w, r, NewErrorResponse("/", "key cannot be empty for PUT"), http.StatusBadRequest)
+		return
+	}
+
+	// Read the parameters from the POST body as form params
+	err := r.ParseForm()
+	if err != nil {
+		// Handle error
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not parse form data: "+err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	value := r.Form.Get("value")
+	if value == "" {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Value cannot be empty"), http.StatusBadRequest)
+		return
+	}
+
+	values := make([]interface{}, 0)
+	if err := json.Unmarshal([]byte(value), &values); err != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Value must be array of objects, err: "+err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	// Write data to the store
+	if err := s.StorageAPI.LPush(k, values...); err != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not push to list: "+err.ErrorCode.Reason), http.StatusInternalServerError)
+		return
+	}
+
+	// Return ok
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeyListPush)
+	s.writeToClient(w, r, returnData, http.StatusOK)
+}
+
+func (s *Service) handleLRem(w http.ResponseWriter, r *http.Request) {
+	if !s.store.IsLeader() {
+		s.forwardRequest(w, r)
+		return
+	}
+
+	vars := mux.Vars(r)
+	k := vars["name"]
+	if k == "" {
+		s.writeToClient(w, r, NewErrorResponse("/", "key cannot be empty for PUT"), http.StatusBadRequest)
+		return
+	}
+
+	// Read the parameters from the POST body as form params
+	err := r.ParseForm()
+	if err != nil {
+		// Handle error
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not parse form data: "+err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	value := r.Form.Get("value")
+	if value == "" {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Value cannot be empty"), http.StatusBadRequest)
+		return
+	}
+
+	var val interface{}
+	if err := json.Unmarshal([]byte(value), &val); err != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Value must be object, err: "+err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	c := r.Form.Get("count")
+	if c == "" {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Count cannot be empty"), http.StatusBadRequest)
+		return
+	}
+
+	count, cErr := strconv.Atoi(c)
+	if cErr != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Count must be number: "+cErr.Error()), http.StatusBadRequest)
+		return
+	}
+
+	// Write data to the store
+	if err := s.StorageAPI.LRem(k, count, value); err != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not remove from list: "+err.ErrorCode.Reason), http.StatusInternalServerError)
+		return
+	}
+
+	// Return ok
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeyListRemove)
+	s.writeToClient(w, r, returnData, http.StatusOK)
+}
+
+func (s *Service) handleZAdd(w http.ResponseWriter, r *http.Request) {
+	if !s.store.IsLeader() {
+		s.forwardRequest(w, r)
+		return
+	}
+
+	vars := mux.Vars(r)
+	k := vars["name"]
+	if k == "" {
+		s.writeToClient(w, r, NewErrorResponse("/", "key cannot be empty for PUT"), http.StatusBadRequest)
+		return
+	}
+
+	// Read the parameters from the POST body as form params
+	err := r.ParseForm()
+	if err != nil {
+		// Handle error
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not parse form data: "+err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	value := r.Form.Get("value")
+	if value == "" {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Value cannot be empty"), http.StatusBadRequest)
+		return
+	}
+
+	var val interface{}
+	if err := json.Unmarshal([]byte(value), &val); err != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Value must be object, err: "+err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	sc := r.Form.Get("score")
+	if sc == "" {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Count cannot be empty"), http.StatusBadRequest)
+		return
+	}
+
+	score, cErr := strconv.Atoi(sc)
+	if cErr != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Score must be number: "+cErr.Error()), http.StatusBadRequest)
+		return
+	}
+
+	// Write data to the store
+	if err := s.StorageAPI.ZAdd(k, int64(score), val); err != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not add to list: "+err.ErrorCode.Reason), http.StatusInternalServerError)
+		return
+	}
+
+	// Return ok
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeyZSetAdd)
+	s.writeToClient(w, r, returnData, http.StatusOK)
+}
+
+func (s *Service) handleZRemRangeByScore(w http.ResponseWriter, r *http.Request) {
+	if !s.store.IsLeader() {
+		s.forwardRequest(w, r)
+		return
+	}
+
+	vars := mux.Vars(r)
+	k := vars["name"]
+	if k == "" {
+		s.writeToClient(w, r, NewErrorResponse("/", "key cannot be empty for DELETE"), http.StatusBadRequest)
+		return
+	}
+
+	// Read the parameters from the POST body as form params
+	err := r.ParseForm()
+
+	if err != nil {
+		// Handle error
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not parse form data: "+err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	mn := r.PostForm["min"]
+	if len(mn) == 0 {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Min cannot be empty"), http.StatusBadRequest)
+		return
+	}
+
+	min, cErr := strconv.Atoi(mn[0])
+	if cErr != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Min must be number: "+cErr.Error()), http.StatusBadRequest)
+		return
+	}
+
+	mx := r.PostForm["max"]
+	if len(mx) == 0 {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Max cannot be empty"), http.StatusBadRequest)
+		return
+	}
+
+	max, mErr := strconv.Atoi(mx[0])
+	if mErr != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Min must be number: "+mErr.Error()), http.StatusBadRequest)
+		return
+	}
+
+	// Write data to the store
+	if err := s.StorageAPI.ZRemRangeByScore(k, int64(min), int64(max)); err != nil {
+		s.writeToClient(w, r, NewErrorResponse("/"+k, "Could not perform RemRangeByScore: "+err.ErrorCode.Reason), http.StatusInternalServerError)
+		return
+	}
+
+	// Return ok
+	returnData := NewKeyValueAPIObjectWithAction(ActionKeyZSetRemRangeByScore)
+	s.writeToClient(w, r, returnData, http.StatusOK)
 }

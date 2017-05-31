@@ -20,8 +20,9 @@ import (
 )
 
 type socketMap struct {
-	KillChan chan struct{}
-	Sock     mangos.Socket
+	KillChan        chan struct{}
+	Sock            mangos.Socket
+	OutboundStarted bool
 }
 
 // MangosServer provides a server implementation to provide as an anchor for a Mangos-based pub/sub network. It
@@ -111,13 +112,10 @@ func (s *MangosServer) onPortAction(action mangos.PortAction, data mangos.Port) 
 			return false
 		}
 	case mangos.PortActionRemove:
-		log.WithFields(logrus.Fields{
-			"prefix": "tcf.MangosServer",
-		}).Debug("Closed inbound connection: ", data.Address())
 		if err = s.handleRemoveConnection(data); err != nil {
 			log.WithFields(logrus.Fields{
 				"prefix": "tcf.MangosServer",
-			}).Error("Could not handle conneciton remove: ", err)
+			}).Error("Could not handle connection remove: ", err)
 			return false
 		}
 	}
@@ -125,7 +123,7 @@ func (s *MangosServer) onPortAction(action mangos.PortAction, data mangos.Port) 
 	return true
 }
 
-func (s *MangosServer) receiveAndRelay(sock *socketMap) {
+func (s *MangosServer) receiveAndRelay(sock *socketMap, id string) {
 	var err error
 	var msg []byte
 
@@ -139,19 +137,20 @@ func (s *MangosServer) receiveAndRelay(sock *socketMap) {
 		if err != nil {
 			log.WithFields(logrus.Fields{
 				"prefix": "tcf.MangosServer",
-			}).Error("Cannot recv: ", err.Error())
+			}).Error("[ReceiveAndRelay] Cannot recv: ", err.Error())
 			break
 		}
 
 		if pubErr := s.relay.Send(msg); pubErr != nil {
 			log.WithFields(logrus.Fields{
 				"prefix": "tcf.MangosServer",
-			}).Errorf("Failed relay: ", pubErr.Error())
+			}).Errorf("[ReceiveAndRelay] Failed relay: ", pubErr.Error())
 		}
 		log.Debug("[SERVER] Relayed: ", string(msg))
 
 		if s.onPublishHook != nil {
 			s.onPublishHook([]byte{}, msg)
+			log.Debug("Server relaying from local clients to HOOK: ", string(msg))
 		}
 
 	}
@@ -163,20 +162,27 @@ func (s *MangosServer) listenForMessagesToRelayForAddress(address string, killCh
 		return fmt.Errorf("Address not found: %v", address)
 	}
 
+	if s.inboundMessageClients[address].OutboundStarted {
+		return nil
+	}
+
 	// Create and listen on the socket, make sure we can kill it
-	go s.receiveAndRelay(sock)
+	go s.receiveAndRelay(sock, address)
+
+	s.inboundMessageClients[address].OutboundStarted = true
 
 	for {
 		select {
 		case <-killChan:
 			log.WithFields(logrus.Fields{
 				"prefix": "tcf.MangosServerClient",
-			}).Debug("Stopping relay listener for ", address)
+			}).Info("Stopping relay listener for ", address)
 			if err := sock.Sock.Close(); err != nil {
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf.MangosServerClient",
 				}).Warning("Failed to close socket: ", err)
 			}
+			s.inboundMessageClients[address].OutboundStarted = false
 			break
 		default:
 			continue
@@ -274,7 +280,8 @@ func (s *MangosServer) handleNewConnection(data mangos.Port) error {
 		return err
 	}
 
-	addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).String())
+	// Only use IP in case of multiple subs?
+	addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).IP.String())
 	_, f := s.inboundMessageClients[addr]
 	if f {
 		return nil
@@ -289,8 +296,8 @@ func (s *MangosServer) handleNewConnection(data mangos.Port) error {
 
 		return nil
 	}
-	s.inboundMessageClients[data.Address()] = &socketMap{KillChan: killChan, Sock: cSock}
-	go s.listenForMessagesToRelayForAddress(data.Address(), killChan)
+	s.inboundMessageClients[addr] = &socketMap{KillChan: killChan, Sock: cSock}
+	go s.listenForMessagesToRelayForAddress(addr, killChan)
 
 	return nil
 }
@@ -303,6 +310,11 @@ func (s *MangosServer) handleRemoveConnection(data mangos.Port) error {
 	}
 
 	addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).String())
+
+	log.WithFields(logrus.Fields{
+		"prefix": "tcf.MangosServer",
+	}).Info("Closed inbound connection: ", addr)
+
 	cSock, f := s.inboundMessageClients[addr]
 
 	if !f {
@@ -312,7 +324,11 @@ func (s *MangosServer) handleRemoveConnection(data mangos.Port) error {
 	// Don't block on send
 	select {
 	case cSock.KillChan <- struct{}{}:
-		delete(s.inboundMessageClients, data.Address())
+		log.Warning("Closing socket")
+		if err := cSock.Sock.Close(); err != nil {
+			log.Error(err)
+		}
+		delete(s.inboundMessageClients, addr)
 	case <-time.After(time.Millisecond * 500):
 		return errors.New("Failed to stop listener for leaving client")
 	}
@@ -407,6 +423,8 @@ func (s *MangosServer) doPublish(filter string, payload payloads.Payload, withHo
 	if withHook {
 		if s.onPublishHook != nil {
 			s.onPublishHook([]byte(filter), asPayload)
+			log.Debug("Server relaying from SERVER to HOOK: ", string(asPayload))
+
 		}
 	}
 

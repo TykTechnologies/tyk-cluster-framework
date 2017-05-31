@@ -112,6 +112,7 @@ func (b *BeaconClient) handleBeaconMessage(s *beacon.Signal) {
 	}
 
 	handler, found := b.payloadHandlers.Get(beaconMsg.Channel)
+
 	if !found {
 		return
 	}
@@ -177,6 +178,7 @@ func (b *BeaconClient) Init(config interface{}) error {
 	}
 
 	b.beacon = beacon.New()
+	b.beacon.NoEcho()
 	b.beacon.SetPort(b.Port).SetInterval(time.Duration(b.Interval) * time.Second)
 	b.SubscribeChan = make(chan string)
 
@@ -240,7 +242,7 @@ func (b *BeaconClient) Broadcast(filter string, payload payloads.Payload, interv
 		return nil
 	}
 
-	log.Info("Publishing")
+	log.Info("BEACON: Starting Publish")
 	pubErr := b.beacon.Publish(wrappedSend)
 	if pubErr != nil {
 		return pubErr

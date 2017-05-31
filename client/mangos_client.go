@@ -40,8 +40,12 @@ func (p *socketMap) Add(socket mangos.Socket, filter string, handler PayloadHand
 func (p *socketMap) Get(filter string) (mangos.Socket, PayloadHandler, bool) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
-
 	h, found := p.payloadHandlers[filter]
+
+	if !found {
+		return nil, nil, found
+	}
+
 	return h.socket, h.handler, found
 }
 
@@ -103,7 +107,6 @@ func (m *MangosClient) Publish(filter string, payload payloads.Payload) error {
 	}
 
 	payload.SetTopic(filter)
-
 	if payload.From() == "" {
 		payload.SetFrom(m.GetID())
 	}
@@ -154,7 +157,7 @@ func (m *MangosClient) registerHandlerForChannel(socket mangos.Socket, filter st
 
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.MangosClient",
-	}).Debugf("Done adding handler for: %v\n", filter)
+	}).Info("Done adding handler for: ", filter)
 }
 
 func (m *MangosClient) notifySub(channel string) {
@@ -185,11 +188,8 @@ func (m *MangosClient) startListening(sock mangos.Socket, channel string) {
 		// Strip the namespace
 		payload := msg[len(channel):]
 
-		log.Debug("Received: stripped data: ", string(payload))
-
 		_, handler, found := m.payloadHandlers.Get(channel)
 		if found {
-			log.Debug("Found handler for: ", channel)
 			handlingErr := m.HandleRawMessage(payload, handler, m.Encoding)
 			if handlingErr != nil {
 				log.WithFields(logrus.Fields{
@@ -206,6 +206,13 @@ func (m *MangosClient) startListening(sock mangos.Socket, channel string) {
 func (m *MangosClient) Subscribe(filter string, handler PayloadHandler) (chan string, error) {
 	var sock mangos.Socket
 	var err error
+
+	_, _, found := m.payloadHandlers.Get(filter)
+	if found {
+		// There's already a listener, just swap out the handler
+		m.registerHandlerForChannel(sock, filter, handler)
+		return m.SubscribeChan, nil
+	}
 
 	if sock, err = sub.NewSocket(); err != nil {
 		return m.SubscribeChan, fmt.Errorf("can't get new sub socket: %s", err.Error())

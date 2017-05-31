@@ -6,5 +6,6 @@ type Encoding string
 
 const (
 	JSON Encoding = "application/json"
+	MPK  Encoding = "application/msgpack"
 	NONE Encoding = "byte"
 )

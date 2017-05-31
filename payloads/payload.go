@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	tykenc "github.com/TykTechnologies/tyk-cluster-framework/encoding"
+	"gopkg.in/vmihailenco/msgpack.v2"
 	"time"
 )
 
@@ -20,6 +21,7 @@ type Payload interface {
 	TimeStamp() time.Time
 	From() string
 	SetFrom(string)
+	GetID() string
 }
 
 // DefaultPayload is the default payload that is used by TCF
@@ -31,6 +33,7 @@ type DefaultPayload struct {
 	Time       int64
 	Topic      string
 	FromID     string
+	MsgID      string
 }
 
 // TimeStamp will set the TS of the payload
@@ -52,6 +55,10 @@ func (p *DefaultPayload) SetTopic(topic string) {
 
 func (p *DefaultPayload) GetTopic() string {
 	return p.Topic
+}
+
+func (p *DefaultPayload) GetID() string {
+	return p.MsgID
 }
 
 // Verify will check the signature if enabled
@@ -77,6 +84,17 @@ func (p *DefaultPayload) Encode() error {
 	switch p.Encoding {
 	case tykenc.JSON:
 		j, err := json.Marshal(p.rawMessage)
+		if err != nil {
+			return err
+		}
+		p.Message = string(j)
+
+		// Sign
+		p.Sig, err = defaultPayloadConfig.verifier.Sign(j)
+		return err
+
+	case tykenc.MPK:
+		j, err := msgpack.Marshal(p.rawMessage)
 		if err != nil {
 			return err
 		}
@@ -123,6 +141,19 @@ func (p *DefaultPayload) DecodeMessage(into interface{}) error {
 			return err
 		}
 		return nil
+
+	case tykenc.MPK:
+		// We are assuming a type here, not ideal
+		toDecode, bErr := p.getBytes()
+		if bErr != nil {
+			return bErr
+		}
+		err := msgpack.Unmarshal(toDecode, into)
+		if err != nil {
+			return err
+		}
+		return nil
+
 	case tykenc.NONE:
 		return nil
 	default:
@@ -146,6 +177,7 @@ func (p *DefaultPayload) Copy() Payload {
 		Time:       p.Time,
 		Topic:      p.Topic,
 		FromID:     p.From(),
+		MsgID:      p.MsgID,
 	}
 
 	return np
