@@ -118,14 +118,8 @@ func (c *APIClient) DeleteKey(key string) (*KeyValueAPIObject, error) {
 	return newAPIReturnObject, nil
 }
 
-func (c *APIClient) CreateKey(key string, value interface{}, ttl string) (*KeyValueAPIObject, error) {
-
-	valueAsJSON, encErr := json.Marshal(value)
-	if encErr != nil {
-		return nil, encErr
-	}
-
-	valueToSend := string(valueAsJSON)
+func (c *APIClient) CreateKey(key string, value string, ttl string) (*KeyValueAPIObject, error) {
+	valueToSend := value
 
 	vals := url.Values{}
 	if ttl != "" {
@@ -170,13 +164,8 @@ func (c *APIClient) CreateKey(key string, value interface{}, ttl string) (*KeyVa
 	return newAPIReturnObject, nil
 }
 
-func (c *APIClient) UpdateKey(key string, value interface{}, ttl string) (*KeyValueAPIObject, error) {
-	valueAsJSON, encErr := json.Marshal(value)
-	if encErr != nil {
-		return nil, encErr
-	}
-
-	valueToSend := string(valueAsJSON)
+func (c *APIClient) UpdateKey(key string, value string, ttl string) (*KeyValueAPIObject, error) {
+	valueToSend := value
 
 	vals := url.Values{}
 	if ttl != "" {

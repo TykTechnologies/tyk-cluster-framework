@@ -49,6 +49,7 @@ type command struct {
 type Store struct {
 	RaftDir  string
 	RaftBind string
+	RaftAdvertise string
 
 	mu sync.Mutex
 	m  map[string][]byte // The key-value store for the system.
@@ -64,6 +65,16 @@ func New() *Store {
 		m:      make(map[string][]byte),
 		logger: log,
 	}
+}
+
+//function to get the public ip address
+func GetOutboundIP() (string, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	return "", err
+	defer conn.Close()
+	localAddr := conn.LocalAddr().String()
+	idx := strings.LastIndex(localAddr, ":")
+	return localAddr[0:idx], nil
 }
 
 // Open opens the store. If enableSingle is set, and there are no existing peers,
@@ -93,10 +104,18 @@ func (s *Store) Open(enableSingle bool) error {
 	}
 
 	// Setup Raft communication.
-	addr, err := net.ResolveTCPAddr("tcp", s.RaftBind)
+	var addr *net.TCPAddr
+
+	advertise := s.RaftAdvertise
+	if advertise == "" {
+		advertise = s.RaftBind
+	}
+
+	addr, err = net.ResolveTCPAddr("tcp", advertise)
 	if err != nil {
 		return err
 	}
+
 	transport, err := raft.NewTCPTransport(s.RaftBind, addr, 3, 10*time.Second, os.Stderr)
 	if err != nil {
 		return err
@@ -123,6 +142,7 @@ func (s *Store) Open(enableSingle bool) error {
 		return fmt.Errorf("new raft: %s", err)
 	}
 	s.raft = ra
+
 	return nil
 }
 
@@ -461,6 +481,10 @@ func (s *Store) IsLeader() bool {
 		return true
 	}
 	return false
+}
+
+func (s *Store) Stop() {
+	s.raft.Shutdown()
 }
 
 type fsmSnapshot struct {

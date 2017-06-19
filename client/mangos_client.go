@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"github.com/go-mangos/mangos/protocol/push"
 )
 
 type socketPayloadHandler struct {
@@ -84,9 +85,9 @@ func (m *MangosClient) GetID() string {
 // Connect will connect a MangosClient to a MangosServer
 func (m *MangosClient) Connect() error {
 
-	m.startMessagePublisher()
+	//m.startMessagePublisher()
 
-	return nil
+	return m.startPushHandler()
 }
 
 // Stop will stop the MangosClient and close open connections
@@ -200,6 +201,43 @@ func (m *MangosClient) startListening(sock mangos.Socket, channel string) {
 
 	}
 
+}
+
+func (m *MangosClient) startPushHandler() error {
+	if m.disablePublisher {
+		return nil
+	}
+	
+	var sock mangos.Socket
+	var err error
+
+	var e *url.URL
+	if e, err = url.Parse(m.URL); err != nil {
+		return err
+	}
+
+	u := helpers.ExtendedURL{URL: e}
+	var p int
+	if p, err = strconv.Atoi(u.Port()); err != nil {
+		log.Error(err)
+		return err
+	}
+	url := fmt.Sprintf("tcp://%v:%v", u.Hostname(), p+1)
+
+	if sock, err = push.NewSocket(); err != nil {
+		return err
+	}
+
+	sock.AddTransport(tcp.NewTransport())
+	if err = sock.Dial(url); err != nil {
+		return err
+	}
+
+	m.pubSock = sock
+	log.Info("Setting port hook")
+	m.pubSock.SetPortHook(m.onPortAction)
+
+	return nil
 }
 
 // Subscribe will subscribe to a topic and attache a PayloadHandler, this is only available in the client

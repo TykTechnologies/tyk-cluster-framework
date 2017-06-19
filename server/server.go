@@ -55,11 +55,14 @@ func NewServer(connectionString string, baselineEncoding encoding.Encoding) (Ser
 		}
 
 		disableConnectionsFromSelf := URL.Query().Get("disable_loopback")
-
+		hostname := URL.Query().Get("hostname")
 		s := &MangosServer{}
 		s.SetEncoding(baselineEncoding)
 		url := "tcp://" + URL.Host
-		s.Init(newMangoConfig(url, disableConnectionsFromSelf != ""))
+
+		cf := newMangoConfig(url, disableConnectionsFromSelf != "")
+		cf.serverHostname = hostname
+		s.Init(cf)
 		return s, nil
 	default:
 		return nil, errors.New("Server scheme not supported.")

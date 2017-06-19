@@ -19,6 +19,7 @@ func newPayload(msg interface{}, generateID bool) (Payload, error) {
 	switch defaultPayloadConfig.payloadType {
 	case PayloadDefaultPayload:
 		id := ""
+
 		if generateID {
 			id = uuid.NewV4().String()
 		}
@@ -36,4 +37,10 @@ func NewPayload(msg interface{}) (Payload, error) {
 
 func NewPayloadNoID(msg interface{}) (Payload, error) {
 	return newPayload(msg, false)
+}
+
+func NewMicroPayload(msg interface{}) (Payload, error) {
+	d := &MicroPayload{rawMessage: msg, E: encoding.JSON, T: time.Now().Unix()}
+	d.Encode()
+	return d, nil
 }

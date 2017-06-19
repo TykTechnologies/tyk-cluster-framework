@@ -236,16 +236,18 @@ func (b *Beacon) Close() {
 	// Send a nil udp data to wake up listen()
 	if b.ipv4Conn != nil {
 		b.ipv4Conn.WriteTo(nil, nil, b.outAddr)
-	} else {
+	} else if b.ipv6Conn != nil {
 		b.ipv6Conn.WriteTo(nil, nil, b.outAddr)
+
 	}
 
 	b.wg.Wait()
 
 	if b.ipv4Conn != nil {
 		b.ipv4Conn.Close()
-	} else {
+	} else if b.ipv6Conn != nil {
 		b.ipv6Conn.Close()
+
 	}
 }
 

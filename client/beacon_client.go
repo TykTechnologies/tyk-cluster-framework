@@ -52,6 +52,7 @@ type BeaconClient struct {
 	Interval      int
 	Port          int
 	SubscribeChan chan string
+	UseMiniPayload bool
 
 	beacon          *beacon.Beacon
 	publishing      bool
@@ -116,7 +117,10 @@ func (b *BeaconClient) handleBeaconMessage(s *beacon.Signal) {
 	if !found {
 		return
 	}
-
+	if b.UseMiniPayload {
+		b.HandleMiniRawMessage(beaconMsg.Transmit, handler, b.Encoding)
+		return
+	}
 	b.HandleRawMessage(beaconMsg.Transmit, handler, b.Encoding)
 }
 

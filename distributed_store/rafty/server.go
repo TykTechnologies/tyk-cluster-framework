@@ -22,13 +22,14 @@ import (
 	"github.com/TykTechnologies/tyk-cluster-framework/client"
 	"github.com/TykTechnologies/tyk-cluster-framework/payloads"
 	"path/filepath"
+	"net"
 )
 
 var log = logger.GetLogger()
 var logPrefix string = "tcf.rafty"
 
 type MasterConfigPayload struct {
-	HttpServerAddr string
+	HA string
 }
 
 // StartServer will start a rafty server based on it's configuration. Most of this is handled by the distributed store parent library.
@@ -53,21 +54,25 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 
 	s := store.New()
 	s.RaftDir = raftyConfig.RaftDir
-	s.RaftBind = raftyConfig.RaftServerAddress
+	s.RaftBind = raftyConfig.RaftBindToAddress
+	s.RaftAdvertise = raftyConfig.RaftServerAddress
 
 	var masterConfigChan = make(chan MasterConfigPayload)
 	if broadcastWith != nil {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
 		}).Info("Starting master broadcaster")
-		startListeningForMasterChange(broadcastWith, masterConfigChan)
-		go startBroadcast(broadcastWith, s, &MasterConfigPayload{HttpServerAddr: raftyConfig.HttpServerAddr})
+		if JoinAddress == "" {
+			// Only use a broadcast join if we don't have an explicit join
+			startListeningForMasterChange(broadcastWith, masterConfigChan)
+		}
+		go startBroadcast(broadcastWith, s, &MasterConfigPayload{HA: raftyConfig.HttpServerAddr})
 
 		if raftyConfig.RunInSingleServerMode == false {
 			select {
 			case masterConfig := <-masterConfigChan:
 				raftyConfig.RunInSingleServerMode = false
-				JoinAddress = masterConfig.HttpServerAddr
+				JoinAddress = masterConfig.HA
 				log.WithFields(logrus.Fields{
 					"prefix": logPrefix,
 				}).Info("Got leader. Joining: ", JoinAddress)
@@ -132,6 +137,10 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 		"prefix": logPrefix,
 	}).Info("Raft server exiting")
 
+	// Stop broadcasting
+	broadcastWith.Stop()
+	defer s.Stop()
+
 	if !s.IsLeader() {
 		log.WithFields(logrus.Fields{
 			"prefix": logPrefix,
@@ -142,15 +151,30 @@ func StartServer(JoinAddress string, raftyConfig *Config, killChan chan os.Signa
 				"prefix": logPrefix,
 			}).Fatal("Raft server tried to leave, error: ", leaveErr)
 		}
+
 		return
 	}
 
 	log.WithFields(logrus.Fields{
 		"prefix": logPrefix,
 	}).Info("Leader leaving cluster")
+
+	// Peers might know us by our resolved IP
 	err := s.RemovePeer(raftyConfig.RaftServerAddress)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// Peers might know us by our resolved IP
+	// resolve it
+	addr, err := net.ResolveTCPAddr("tcp", raftyConfig.RaftServerAddress)
+	if err != nil {
+		log.Error(err)
+	}
+
+	err = s.RemovePeer(addr.String())
+	if err != nil {
+		log.Warning(err)
 	}
 }
 
@@ -158,12 +182,12 @@ func masterListener(inBoundChan chan MasterConfigPayload, raftyConfig *Config) {
 	lastWrite := time.Now().Unix()
 	for {
 		masterConfig := <-inBoundChan
-		if masterConfig.HttpServerAddr != raftyConfig.HttpServerAddr {
+		if masterConfig.HA != raftyConfig.HttpServerAddr {
 			// Stop flooding the log
 			if (time.Now().Unix() - lastWrite) > int64(10) {
 				log.WithFields(logrus.Fields{
 					"prefix": logPrefix,
-				}).Info("Leader is: ", masterConfig.HttpServerAddr)
+				}).Info("Leader is: ", masterConfig.HA)
 				lastWrite = time.Now().Unix()
 			}
 
@@ -178,7 +202,7 @@ func startBroadcast(msgClient client.Client, s *store.Store, raftyConfig *Master
 	for {
 		if !isPublishing {
 			if s.IsLeader() {
-				thisPayload, pErr := payloads.NewPayloadNoID(*raftyConfig)
+				thisPayload, pErr := payloads.NewMicroPayload(*raftyConfig)
 
 				if pErr != nil {
 					log.WithFields(logrus.Fields{
@@ -188,7 +212,7 @@ func startBroadcast(msgClient client.Client, s *store.Store, raftyConfig *Master
 
 				log.WithFields(logrus.Fields{
 					"prefix": "tcf-exp",
-				}).Debug("Sending Broadcast: %v", raftyConfig.HttpServerAddr)
+				}).Debug("Sending Broadcast: %v", raftyConfig.HA)
 				if bErr := msgClient.Broadcast("tcf.cluster.distributed_store.leader", thisPayload, 5); bErr != nil {
 					log.WithFields(logrus.Fields{
 						"prefix": logPrefix,

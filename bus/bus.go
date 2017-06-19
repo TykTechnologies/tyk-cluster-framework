@@ -14,6 +14,8 @@ import (
 	"github.com/go-mangos/mangos/protocol/bus"
 	"github.com/go-mangos/mangos/transport/tcp"
 	"github.com/satori/go.uuid"
+	"github.com/hashicorp/golang-lru"
+	"crypto/md5"
 )
 
 type Bus struct {
@@ -21,22 +23,31 @@ type Bus struct {
 	conn_str        string
 	sock            mangos.Socket
 	me              string
+	listenOn	string
 	enc             encoding.Encoding
 	id              string
 	rawMode         bool
 	payloadHandlers map[string]client.PayloadHandler
 	onRawMessage    func([]byte) error
 	stopChan        chan struct{}
+	dupeCache       *lru.Cache
 }
 
 var log = logger.GetLogger()
 
-func NewBus(conn_str, me string, rawMode bool, enc encoding.Encoding) (*Bus, error) {
+func NewBus(conn_str, me string, listenOn string, rawMode bool, enc encoding.Encoding) (*Bus, error) {
+	cache, err := lru.New(1000)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Bus{
 		conn_str:        conn_str,
 		me:              me,
+		listenOn:	 listenOn,
 		enc:             enc,
 		rawMode:         rawMode,
+		dupeCache:       cache,
 		id:              uuid.NewV4().String(),
 		payloadHandlers: make(map[string]client.PayloadHandler),
 		stopChan:        make(chan struct{}),
@@ -50,9 +61,6 @@ func (b *Bus) Connect() error {
 	}
 
 	hosts := strings.Split(fragment[1], ",")
-	if len(hosts) < 2 {
-		return errors.New("Connection string must have at least two or more hosts")
-	}
 
 	var err error
 	for _, h := range hosts {
@@ -61,7 +69,7 @@ func (b *Bus) Connect() error {
 		}
 
 		fixedHost := fmt.Sprintf("tcp://%v", h)
-
+		
 		if err = b.sock.Dial(fixedHost); err != nil {
 			return fmt.Errorf("socket.Dial: %s", err.Error())
 		}
@@ -117,7 +125,7 @@ func (b *Bus) Listen() error {
 	}
 
 	b.sock.AddTransport(tcp.NewTransport())
-	listenOn := fmt.Sprintf("tcp://%s", b.me)
+	listenOn := fmt.Sprintf("tcp://%s", b.listenOn)
 	if err = b.sock.Listen(listenOn); err != nil {
 		return fmt.Errorf("sock.Listen: %s", err.Error())
 	}
@@ -186,6 +194,13 @@ func (b *Bus) Send(topic string, payload payloads.Payload) error {
 }
 
 func (b *Bus) SendRaw(value []byte) error {
+	// Make sure we ignore entries we've seen before
+	h := fmt.Sprintf("%x", md5.Sum(value))
+	if f, _ := b.dupeCache.ContainsOrAdd(h, true); f == true {
+		log.Warningf("Duplicate message to  bus (%v), ignoring\n", h)
+		return nil
+	}
+
 	if err := b.sock.Send(value); err != nil {
 		return fmt.Errorf("sock.Send: %s", err.Error())
 	}

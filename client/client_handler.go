@@ -24,9 +24,38 @@ func (c ClientHandler) HandleRawMessage(rawMessage interface{}, payloadHandler P
 	return nil
 }
 
+// HandleMiniRawMessage will take the raw data, payload handler and encoding.Encoding, decode the value,
+// pass it to the handler and return an error if there was a problem
+func (c ClientHandler) HandleMiniRawMessage(rawMessage interface{}, payloadHandler PayloadHandler, enc encoding.Encoding) error {
+	// First, decode the message based on it's type and encoding.Encoding
+	asPayload, err := c.GetMiniPayload(rawMessage, enc)
+	if err != nil {
+		return err
+	}
+
+	// Call the registered handler
+	payloadHandler(asPayload)
+	return nil
+}
+
 // GetPayload will extract the payload object from the message
 func (c ClientHandler) GetPayload(rawMessage interface{}, enc encoding.Encoding) (payloads.Payload, error) {
 	msgHandler := NewMessageHandler()
+	asPayload, err := msgHandler.HandleRawMessage(rawMessage, enc)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = asPayload.Verify(); err != nil {
+		return nil, fmt.Errorf("Payload verification failed: %v", err)
+	}
+
+	return asPayload, nil
+}
+
+// GetMiniPayload will extract the payload object from the message into a smaller object
+func (c ClientHandler) GetMiniPayload(rawMessage interface{}, enc encoding.Encoding) (payloads.Payload, error) {
+	msgHandler := &MiniMessageHandler{}
 	asPayload, err := msgHandler.HandleRawMessage(rawMessage, enc)
 	if err != nil {
 		return nil, err

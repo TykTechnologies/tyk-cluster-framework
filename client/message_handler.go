@@ -14,6 +14,9 @@ type MessageHandler interface {
 // The DefaultMessageHandler is the message handler used by default in TCF
 type DefaultMessageHandler struct{}
 
+// The DefaultMessageHandler is the message handler used by default in TCF
+type MiniMessageHandler struct{}
+
 // HandleRawMessage will handle the inbound message from the wire to be processed by the payload
 func (m *DefaultMessageHandler) HandleRawMessage(rawMessage interface{}, enc encoding.Encoding) (payloads.Payload, error) {
 	switch rawMessage.(type) {
@@ -26,6 +29,26 @@ func (m *DefaultMessageHandler) HandleRawMessage(rawMessage interface{}, enc enc
 
 func (m *DefaultMessageHandler) handleByteArrayMessage(rawMessage []byte, enc encoding.Encoding) (payloads.Payload, error) {
 	thisPayload, pErr := payloads.NewPayload(struct{}{})
+	if pErr != nil {
+		return nil, pErr
+	}
+
+	decodeFailure := payloads.Unmarshal(thisPayload, rawMessage, enc)
+	return thisPayload, decodeFailure
+}
+
+// HandleRawMessage will handle the inbound message from the wire to be processed by the payload
+func (m *MiniMessageHandler) HandleRawMessage(rawMessage interface{}, enc encoding.Encoding) (payloads.Payload, error) {
+	switch rawMessage.(type) {
+	case []byte:
+		return m.handleByteArrayMessage(rawMessage.([]byte), enc)
+	default:
+		return nil, errors.New("Raw message type is not supported")
+	}
+}
+
+func (m *MiniMessageHandler) handleByteArrayMessage(rawMessage []byte, enc encoding.Encoding) (payloads.Payload, error) {
+	thisPayload, pErr := payloads.NewMicroPayload(struct{}{})
 	if pErr != nil {
 		return nil, pErr
 	}

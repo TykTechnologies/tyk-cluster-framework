@@ -93,6 +93,7 @@ func NewClient(connectionString string, baselineEncoding encoding.Encoding) (Cli
 			Port:     portAsInt,
 			Interval: asInt,
 			id:       id,
+			UseMiniPayload: true,
 		}
 		c.SetEncoding(baselineEncoding)
 		c.Init(nil)

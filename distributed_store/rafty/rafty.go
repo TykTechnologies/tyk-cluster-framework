@@ -13,11 +13,14 @@ const (
 type Config struct {
 	HttpServerAddr        string
 	RaftServerAddress     string
+	RaftBindToAddress     string
+
 	JoinTimeout           int
 	RaftDir               string
 	TLSConfig             *httpd.TLSConfig
 	RunInSingleServerMode bool
 	ResetPeersOnLoad      bool
+	AdvertiseInternal     bool
 }
 
 var tcfRaftyConfig Config = Config{

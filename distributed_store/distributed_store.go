@@ -19,6 +19,7 @@ var DistributedStores map[string]chan os.Signal = make(map[string]chan os.Signal
 // provides a full HTTP and embedded API for interaction with the store
 type DistributedStore struct {
 	config     *rafty.Config
+	GetAdvertiseAddr func() (*net.TCPAddr, error)
 	StorageAPI *httpd.EmbeddedService
 	serverID   string
 }
@@ -36,18 +37,19 @@ func NewDistributedStore(config *rafty.Config) (*DistributedStore, error) {
 
 	if config != nil {
 		// Change hostnames to IP addresses
-		httpAddr, err := net.ResolveTCPAddr("tcp", config.HttpServerAddr)
-		if err != nil {
-			return nil, err
-		}
+		//httpAddr, err := net.ResolveTCPAddr("tcp", config.HA)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//
+		//raftAddr, err := net.ResolveTCPAddr("tcp", config.RaftServerAddress)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//
+		//config.HA = httpAddr.String()
+		//config.RaftServerAddress = raftAddr.String()
 
-		raftAddr, err := net.ResolveTCPAddr("tcp", config.RaftServerAddress)
-		if err != nil {
-			return nil, err
-		}
-
-		config.HttpServerAddr = httpAddr.String()
-		config.RaftServerAddress = raftAddr.String()
 		d.config = config
 	}
 

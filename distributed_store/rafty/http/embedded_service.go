@@ -58,6 +58,10 @@ func (e *EmbeddedService) Leader() string {
 	return e.storageAPI.store.Leader()
 }
 
+func (e *EmbeddedService) IsLeader() bool {
+	return e.storageAPI.store.IsLeader()
+}
+
 func (e *EmbeddedService) AddToSet(key string, value []byte) (*KeyValueAPIObject, error) {
 	nodeData := &rafty_objects.NodeValue{
 		TTL:   0,
@@ -241,7 +245,7 @@ func (e *EmbeddedService) ZRemRangeByScore(key string, min int64, max int64) (*K
 	if !e.storageAPI.store.IsLeader() {
 		f := ForwardNodeValue{NodeValue: *nodeData}
 		f.ZREMRANGEBYSCORE.Max = max
-		f.ZREMRANGEBYSCORE.Min = min
+		f.ZREMRANGEBYSCORE.Max = min
 		return e.forwardCommand(key, forward_zremrangebyscore, &f)
 	}
 

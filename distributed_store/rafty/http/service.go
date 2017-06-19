@@ -13,6 +13,7 @@ import (
 	"gopkg.in/vmihailenco/msgpack.v2"
 	"net/http"
 	"strconv"
+	"net"
 )
 
 var log = logger.GetLogger()
@@ -202,11 +203,20 @@ func (s *Service) handleJoin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.store.Join(remoteAddr); err != nil {
+	// resolve it
+	addr, err := net.ResolveTCPAddr("tcp", remoteAddr)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	if err := s.store.Join(addr.String()); err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+
 }
 
 func (s *Service) handleRemove(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +243,14 @@ func (s *Service) handleRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.store.RemovePeer(remoteAddr); err != nil {
+	// resolve it
+	addr, err := net.ResolveTCPAddr("tcp", remoteAddr)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	if err := s.store.RemovePeer(addr.String()); err != nil {
 		log.Error("FAILED TO REMOVE PEER: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return

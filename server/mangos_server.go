@@ -17,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"golang.org/x/sync/syncmap"
+	"github.com/go-mangos/mangos/protocol/pull"
 )
 
 type socketMap struct {
@@ -32,7 +34,7 @@ type socketMap struct {
 type MangosServer struct {
 	listening             bool
 	relay                 mangos.Socket
-	inboundMessageClients map[string]*socketMap
+	inboundMessageClients syncmap.Map
 	conf                  *MangosServerConf
 	encoding              encoding.Encoding
 	id                    string
@@ -43,6 +45,7 @@ type MangosServer struct {
 type MangosServerConf struct {
 	Encoding                   encoding.Encoding
 	listenOn                   string
+	serverHostname 	           string
 	disableConnectionsFromSelf bool
 }
 
@@ -57,7 +60,7 @@ func newMangoConfig(listenOn string, disableConnectionsFromSelf bool) *MangosSer
 // init will set up the initial state of the server
 func (s *MangosServer) Init(config interface{}) error {
 	s.conf = config.(*MangosServerConf)
-	s.inboundMessageClients = make(map[string]*socketMap)
+	s.inboundMessageClients = syncmap.Map{}
 	s.SetEncoding(s.conf.Encoding)
 	s.id = uuid.NewV4().String()
 
@@ -68,16 +71,14 @@ func (s *MangosServer) GetID() string {
 	return s.id
 }
 
-// Connections returns a list of connected clients, used mainly in testing
 func (s *MangosServer) Connections() []string {
-	conns := make([]string, len(s.inboundMessageClients))
-	c := 0
-	for addr := range s.inboundMessageClients {
-		conns[c] = addr
-		c += 1
-	}
+	c := make([]string, 0)
+	s.inboundMessageClients.Range(func (key, value interface{}) bool {
+		c = append(c, key.(string))
+		return true
+	})
 
-	return conns
+	return c
 }
 
 func (s *MangosServer) startListening() error {
@@ -150,26 +151,29 @@ func (s *MangosServer) receiveAndRelay(sock *socketMap, id string) {
 
 		if s.onPublishHook != nil {
 			s.onPublishHook([]byte{}, msg)
-			log.Debug("Server relaying from local clients to HOOK: ", string(msg))
+			log.Debug("Server relaying from SERVER to HOOK: ", msg)
 		}
 
 	}
 }
 
 func (s *MangosServer) listenForMessagesToRelayForAddress(address string, killChan chan struct{}) error {
-	sock, f := s.inboundMessageClients[address]
+	sm, f := s.inboundMessageClients.Load(address)
 	if !f {
 		return fmt.Errorf("Address not found: %v", address)
 	}
 
-	if s.inboundMessageClients[address].OutboundStarted {
+	sock, _ := sm.(*socketMap)
+	if sock.OutboundStarted {
 		return nil
 	}
 
+	sock.OutboundStarted = true
+
+	s.inboundMessageClients.Store(address, sock)
+
 	// Create and listen on the socket, make sure we can kill it
 	go s.receiveAndRelay(sock, address)
-
-	s.inboundMessageClients[address].OutboundStarted = true
 
 	for {
 		select {
@@ -182,7 +186,12 @@ func (s *MangosServer) listenForMessagesToRelayForAddress(address string, killCh
 					"prefix": "tcf.MangosServerClient",
 				}).Warning("Failed to close socket: ", err)
 			}
-			s.inboundMessageClients[address].OutboundStarted = false
+			sm, f := s.inboundMessageClients.Load(address)
+			if f {
+				sock, _ := sm.(*socketMap)
+				sock.OutboundStarted = false
+				s.inboundMessageClients.Store(address, sock)
+			}
 			break
 		default:
 			continue
@@ -229,6 +238,18 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 				}
 			}
 		}
+
+		if s.conf.serverHostname != "" {
+			tcpAddr, _ := net.ResolveTCPAddr("tcp", s.conf.serverHostname)
+			if strings.Contains(address, tcpAddr.IP.String()) {
+				log.WithFields(logrus.Fields{
+					"prefix": "tcf.MangosServer",
+				}).Info("Connection is from self (public)! skipping.")
+				return nil, ConnectToSelf
+			}
+		}
+
+
 	}
 
 	var cSock mangos.Socket
@@ -272,8 +293,65 @@ func (s *MangosServer) connectToClientForMessages(address string) (mangos.Socket
 	return cSock, nil
 }
 
+func (s *MangosServer) startPullListener() error {
+	var sock mangos.Socket
+	var err error
+	var msg []byte
+
+	var e *url.URL
+	if e, err = url.Parse(s.conf.listenOn); err != nil {
+		log.Error(err)
+		return err
+	}
+
+	// Puller is on listen port +1
+	u := helpers.ExtendedURL{URL: e}
+	var p int
+	if p, err = strconv.Atoi(u.Port()); err != nil {
+		log.Error(err)
+		return err
+	}
+
+	url := fmt.Sprintf("tcp://0.0.0.0:%v", p+1)
+
+	if sock, err = pull.NewSocket(); err != nil {
+		log.Error(err)
+		return err
+	}
+
+	sock.AddTransport(tcp.NewTransport())
+	if err = sock.Listen(url); err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	for {
+		msg, err = sock.Recv()
+		if err != nil {
+			log.WithFields(logrus.Fields{
+				"prefix": "tcf.MangosServer",
+			}).Error("[Pull Handler] Cannot recv: ", err.Error())
+			break
+		}
+
+		if pubErr := s.relay.Send(msg); pubErr != nil {
+			log.WithFields(logrus.Fields{
+				"prefix": "tcf.MangosServer",
+			}).Errorf("[ReceiveAndRelay] Failed relay: ", pubErr.Error())
+		}
+		log.Debug("[SERVER] Relayed: ", string(msg))
+
+		if s.onPublishHook != nil {
+			s.onPublishHook([]byte{}, msg)
+			log.Debug("Server relaying from SERVER to HOOK: ", msg)
+		}
+	}
+
+	return nil
+}
+
 func (s *MangosServer) handleNewConnection(data mangos.Port) error {
-	killChan := make(chan struct{})
+	//killChan := make(chan struct{})
 	tcpAddr, err := data.GetProp("REMOTE-ADDR")
 	if err != nil {
 		log.Error("Cannot get remote address: ", err)
@@ -281,23 +359,32 @@ func (s *MangosServer) handleNewConnection(data mangos.Port) error {
 	}
 
 	// Only use IP in case of multiple subs?
-	addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).IP.String())
-	_, f := s.inboundMessageClients[addr]
+	asNetAddr, _ := tcpAddr.(*net.TCPAddr)
+	addr := fmt.Sprintf("tcp://%v", asNetAddr.IP.String())
+
+	//addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).String())
+
+	_, f := s.inboundMessageClients.Load(addr)
 	if f {
+		log.Warning("--- Connection already tracked!")
 		return nil
 	}
 
-	cSock, err := s.connectToClientForMessages(addr)
-	if err != nil {
-		// TODO: This should be a special case!
-		if err != ConnectToSelf {
-			return err
-		}
+	// Do not create a counter connection
+	//cSock, err := s.connectToClientForMessages(addr)
+	//if err != nil {
+	//	// TODO: This should be a special case!
+	//	if err != ConnectToSelf {
+	//		return err
+	//	}
+	//
+	//	return nil
+	//}
+	//
+	//log.Warningf("New inbound connection: Adding %v to socket map", addr)
+	//s.inboundMessageClients.Store(addr, &socketMap{KillChan: killChan, Sock: cSock})
 
-		return nil
-	}
-	s.inboundMessageClients[addr] = &socketMap{KillChan: killChan, Sock: cSock}
-	go s.listenForMessagesToRelayForAddress(addr, killChan)
+	//go s.listenForMessagesToRelayForAddress(addr, killChan)
 
 	return nil
 }
@@ -309,15 +396,24 @@ func (s *MangosServer) handleRemoveConnection(data mangos.Port) error {
 		return err
 	}
 
-	addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).String())
+	// addr := fmt.Sprintf("tcp://%v", tcpAddr.(*net.TCPAddr).String())
+
+	// Only use IP in case of multiple subs?
+	asNetAddr, _ := tcpAddr.(*net.TCPAddr)
+	addr := fmt.Sprintf("tcp://%v", asNetAddr.IP.String())
 
 	log.WithFields(logrus.Fields{
 		"prefix": "tcf.MangosServer",
 	}).Info("Closed inbound connection: ", addr)
 
-	cSock, f := s.inboundMessageClients[addr]
+	cs, f := s.inboundMessageClients.Load(addr)
+	defer s.inboundMessageClients.Delete(addr)
 
+	cSock, _ := cs.(*socketMap)
 	if !f {
+		log.WithFields(logrus.Fields{
+			"prefix": "tcf.MangosServer",
+		}).Warning("--> Inbound connection not found in socket map: ", addr)
 		return nil
 	}
 
@@ -328,7 +424,6 @@ func (s *MangosServer) handleRemoveConnection(data mangos.Port) error {
 		if err := cSock.Sock.Close(); err != nil {
 			log.Error(err)
 		}
-		delete(s.inboundMessageClients, addr)
 	case <-time.After(time.Millisecond * 500):
 		return errors.New("Failed to stop listener for leaving client")
 	}
@@ -344,6 +439,10 @@ func (s *MangosServer) Listen() error {
 				"prefix": "tcf.MangosServer",
 			}).Fatal(err)
 		}
+
+		// Use a pipeline for inbound messages
+		go s.startPullListener()
+
 		s.listening = true
 		return nil
 	}
@@ -421,9 +520,10 @@ func (s *MangosServer) doPublish(filter string, payload payloads.Payload, withHo
 	}
 
 	if withHook {
+		// DEBUG: This is not causing duplicates - confirmed
 		if s.onPublishHook != nil {
 			s.onPublishHook([]byte(filter), asPayload)
-			log.Debug("Server relaying from SERVER to HOOK: ", string(asPayload))
+			log.Debug("Server relaying from SERVER to HOOK: ", payload.GetID())
 
 		}
 	}

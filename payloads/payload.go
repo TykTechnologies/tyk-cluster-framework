@@ -22,6 +22,7 @@ type Payload interface {
 	From() string
 	SetFrom(string)
 	GetID() string
+	SetData(interface{})
 }
 
 // DefaultPayload is the default payload that is used by TCF
@@ -77,6 +78,11 @@ func (p *DefaultPayload) Verify() error {
 	}
 
 	return nil
+}
+
+func (p *DefaultPayload) SetData(data interface{}) {
+	p.rawMessage = data
+	p.Encode()
 }
 
 // Encode will convert the payload into the baseline encoding.Encoding type to send over the wire
